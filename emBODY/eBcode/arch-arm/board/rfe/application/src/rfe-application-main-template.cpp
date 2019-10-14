@@ -13,9 +13,16 @@
 // --------------------------------------------------------------------------------------------------------------------
 // config start
 
+
+#if defined(DEBUG_IMU_ACQUISITION_LED_ON)
+constexpr uint8_t majo = 100;
+#else
+constexpr uint8_t majo = 1;
+#endif
+	
 constexpr embot::app::theCANboardInfo::applicationInfo applInfo 
 { 
-    embot::app::canprotocol::versionOfAPPLICATION {1, 1, 3},    
+    embot::app::canprotocol::versionOfAPPLICATION {majo, 1, 3},    
     embot::app::canprotocol::versionOfCANPROTOCOL {2, 0}    
 };
 
@@ -160,8 +167,12 @@ void mySYS::userdefInit_Extra(embot::sys::EventTask* evtsk, void *initparam) con
     // led manager
     static const std::initializer_list<embot::hw::LED> allleds = {embot::hw::LED::one};  
     embot::app::theLEDmanager &theleds = embot::app::theLEDmanager::getInstance();     
-    theleds.init(allleds);    
+    theleds.init(allleds);  
+    #if defined(DEBUG_IMU_ACQUISITION_LED_ON) 
+    embot::app::theLEDmanager::getInstance().get(embot::hw::LED::one).off();
+    #else 
     theleds.get(embot::hw::LED::one).pulse(embot::common::time1second); 
+    #endif
 
     // init of can basic paser
     embot::app::application::theCANparserBasic::getInstance().initialise({});

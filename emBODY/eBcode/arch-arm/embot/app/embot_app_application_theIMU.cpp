@@ -52,6 +52,8 @@
 #include "embot_hw_bno055.h"
 #include "embot_hw_bsp_strain2.h"
 
+#include "embot_app_theLEDmanager.h"
+
 
 // --------------------------------------------------------------------------------------------------------------------
 // - pimpl: private implementation (see scott meyers: item 22 of effective modern c++, item 31 of effective c++
@@ -108,6 +110,9 @@ struct embot::app::application::theIMU::Impl
         } 
         void onstart()
         {
+        	#if defined(DEBUG_IMU_ACQUISITION_LED_ON)
+            embot::app::theLEDmanager::getInstance().get(embot::hw::LED::one).on();
+            #endif
             timeofstart = embot::sys::now(); 
             duration = 0;            
             dataisready = false;
@@ -116,7 +121,10 @@ struct embot::app::application::theIMU::Impl
         void onstop()
         {
             dataisready = true;  
-            duration = embot::sys::now() - timeofstart;    
+            duration = embot::sys::now() - timeofstart; 
+            #if defined(DEBUG_IMU_ACQUISITION_LED_ON)
+            embot::app::theLEDmanager::getInstance().get(embot::hw::LED::one).off();
+            #endif            
         }
     };
     
