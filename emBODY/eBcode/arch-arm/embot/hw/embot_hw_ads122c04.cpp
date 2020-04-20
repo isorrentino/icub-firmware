@@ -46,6 +46,11 @@ using namespace embot::hw;
 // - pimpl: private implementation (see scott meyers: item 22 of effective modern c++, item 31 of effective c++
 // --------------------------------------------------------------------------------------------------------------------
 
+#warning FIX-it: EMBOT_ENABLE_hw_ads122c04
+
+#if !defined(EMBOT_ENABLE_hw_ads122c04)
+    #define EMBOT_ENABLE_hw_ads122c04
+#endif
 
 // --------------------------------------------------------------------------------------------------------------------
 // - all the rest
@@ -83,7 +88,9 @@ namespace embot { namespace hw { namespace ads122c04 {
     
     bool supported(ADS122C04 s)
     {
-        return embot::hw::bsp::ads122c04::getBSP().supported(s);
+        #warning FIX-it: BSP::supported()
+        //return embot::hw::bsp::ads122c04::getBSP().supported(s);
+        return true;
     }
     
     bool initialised(ADS122C04 s)
@@ -152,8 +159,9 @@ namespace embot { namespace hw { namespace ads122c04 {
             return resOK;
         }
         
+        #warning FIX-it: BSP::init()
         // init peripheral
-        embot::hw::bsp::ads122c04::getBSP().init(s);
+        //embot::hw::bsp::ads122c04::getBSP().init(s);
         
         // power on and wait until the i2c is working. datasheet say: POR time > 650 ms.
         s_powerON(s, PORtime);
@@ -164,14 +172,17 @@ namespace embot { namespace hw { namespace ads122c04 {
         // init i2c ..
         embot::hw::i2c::init(config.i2cdes.bus, config.i2cdes.config);
         
-        if(false == embot::hw::i2c::ping(config.i2cdes.bus, embot::hw::bsp::ads122c04::getBSP().getPROP(s)->i2caddress, 3*embot::core::time1millisec))
+#warning FIX-it: i2c address
+//        embot::hw::i2c::ADR i2caddress = embot::hw::bsp::ads122c04::getBSP().getPROP(s)->i2caddress;
+        embot::hw::i2c::ADR i2caddress = 1;
+        if(false == embot::hw::i2c::ping(config.i2cdes.bus, i2caddress, 3*embot::core::time1millisec))
         {
             return resNOK;
         }
         
         s_privatedata.config[index] = config;
         s_privatedata.acquisition[index].clear();
-        s_privatedata.i2caddress[index] = embot::hw::bsp::ads122c04::getBSP().getPROP(s)->i2caddress;
+        s_privatedata.i2caddress[index] = i2caddress;
         
         embot::core::binary::bit::set(initialisedmask, embot::core::tointegral(s));
                 
