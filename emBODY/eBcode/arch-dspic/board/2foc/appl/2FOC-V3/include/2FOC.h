@@ -52,6 +52,20 @@ typedef union
     unsigned int bitmask;
 } __attribute__((__packed__)) tMotorConfig;
 
+/*typedef struct tPackageCANLog
+{
+    // This structure is used to save a package to be sent 
+    // to the CAN bus for logging purposes.
+    // Each package contains the measured quadrature current (mA), 
+    // the electrical angle (degree) and the quadrature PWM set point.
+    unsigned short iq;
+    unsigned short elecAngle;
+    unsigned short PWMq;
+} ;
+// This array represents the buffer that will contain several structures 
+// of the type defined above.
+struct tPackageCANLog gbufferCANLog[20];*/
+
 volatile extern tMotorConfig MotorConfig;
 
 volatile extern tCtrlReferences CtrlReferences;

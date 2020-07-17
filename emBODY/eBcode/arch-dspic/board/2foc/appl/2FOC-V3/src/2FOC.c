@@ -576,7 +576,7 @@ void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
         }
         else
         {
-            enc = QEgetElettrDeg();
+            enc = QEgetElettrDeg();   
         }
     }
 
