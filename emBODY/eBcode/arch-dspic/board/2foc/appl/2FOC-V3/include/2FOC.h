@@ -17,7 +17,7 @@ extern "C" {
 //#define HAS_TSENS   0x0004
 //#define HAS_INDEX   0x0008
     
-#define CAN_PACK_TO_LOG 20
+#define CAN_BYTES_TO_LOG 60
 
 typedef struct
 {
@@ -54,15 +54,9 @@ typedef union
     unsigned int bitmask;
 } __attribute__((__packed__)) tMotorConfig;
 
-typedef struct
-{
-    unsigned short Iq; // Current measured on quadrature axis
-    unsigned short electAngle; // Electrical angle
-    unsigned short PWMq; // PWM set point on quadrature axis
-} tCanLogData;
-volatile extern tCanLogData gbufferCANLog[CAN_PACK_TO_LOG];
-volatile extern BOOL gLogData;
-volatile extern short gNumOfPackages;
+volatile extern uint8_t gLogData;
+volatile extern int8_t gNumOfBytes;
+volatile extern char gLoggedData[CAN_BYTES_TO_LOG];
 
 volatile extern tMotorConfig MotorConfig;
 

@@ -63,7 +63,7 @@ USE FOR EXTENDED MESSAGES ONLY */
 typedef union
 {
     unsigned long dw[2];
-    unsigned short w[4];
+    unsigned short w[8];
     unsigned char b[8];
 }__attribute__((__packed__)) tCanData;
 

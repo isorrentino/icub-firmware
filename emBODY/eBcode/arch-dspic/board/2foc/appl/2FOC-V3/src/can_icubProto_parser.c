@@ -186,19 +186,8 @@ static int s_canIcubProtoParser_parse_pollingMsg(tCanData *rxpayload, unsigned c
 
             setMaxCurrent(nom, peak, ovr);
 
-        return 1;
-    }
-    
-    // Message to enable or disable the logging mode. It changes the variable 
-    // gLoggingMode that is then used in can_icubProto_transmitter.c
-    if (cmd == ICUBCANPROTO_POL_MC_CMD__SET_LOGGING_MODE)
-    {
-        if (rxlen!=2) return 0;
-
-        gLogData = rxpayload->b[1];
-
-        return 1;
-    }
+            return 1;
+        }
     
         return 0;
     }
@@ -239,7 +228,7 @@ static int s_canIcubProtoParser_parse_pollingMsg(tCanData *rxpayload, unsigned c
 
         uint8_t server_can_protocol_major = rxpayload->b[1];
         uint8_t server_can_protocol_minor = rxpayload->b[2];
-
+        
         gCanProtocolCompatible = CAN_PROTOCOL_VERSION_MAJOR == server_can_protocol_major 
                               && CAN_PROTOCOL_VERSION_MINOR == server_can_protocol_minor;
 
@@ -455,6 +444,17 @@ static int s_canIcubProtoParser_parse_pollingMsg(tCanData *rxpayload, unsigned c
   
         //I2Tdata.Param = (rxpayload->b[2] << 8 | rxpayload->b[1]);
         //I2Tdata.IThreshold = (rxpayload->b[4] << 8 | rxpayload->b[3]);
+
+        return 1;
+    }
+    
+    // Message to enable or disable the logging mode. It changes the variable 
+    // gLoggingMode that is then used in can_icubProto_transmitter.c
+    if (cmd == ICUBCANPROTO_POL_MC_CMD__SET_LOGGING_MODE)
+    {
+        if (rxlen!=2) return 0;
+
+        gLogData = (uint8_t)rxpayload->b[1];
 
         return 1;
     }

@@ -205,7 +205,7 @@ volatile int  SKi = 0x10;
 volatile char SKs = 0x0A;
 volatile long SIntLimit = 0;//800L*1024L;
 
-volatile BOOL gLogData = FALSE;
+volatile uint8_t gLogData = 0;
 
 /////////////////////////////////////////
 
@@ -534,8 +534,9 @@ int alignRotor(volatile int* IqRef)
 
 extern volatile int dataC;
 extern volatile int dataD;
-volatile short gNumOfPackages = 0;
-volatile tCanLogData gbufferCANLog[CAN_PACK_TO_LOG];
+
+volatile int8_t gNumOfBytes = 0;
+volatile char gLoggedData[CAN_BYTES_TO_LOG];
 
 void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
 {
@@ -1007,17 +1008,24 @@ void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
     ///////////////////////////////////////////////////
     // Fill structure to log data if the logging mode is enabled
     if (gLogData) {
-        gbufferCANLog[gNumOfPackages].Iq = I2Tdata.IQMeasured;
-        gbufferCANLog[gNumOfPackages].electAngle = gEncoderConfig.offset + __builtin_divsd(__builtin_mulss((int)POSCNT, gEncoderConfig.elettr_deg_per_rev),QE_RESOLUTION);
-        gbufferCANLog[gNumOfPackages].PWMq = Vq;
-        
-        if (gNumOfPackages < CAN_PACK_TO_LOG)
+        if (gNumOfBytes < CAN_BYTES_TO_LOG)
         {
-            gNumOfPackages = gNumOfPackages + 1;
-        }
-        else
-        {
-            gNumOfPackages = 0;
+            /*gbufferCANLog[gNumOfBytes].Iq = I2Tdata.IQMeasured;
+            gbufferCANLog[gNumOfBytes].electAngle = gEncoderConfig.offset + __builtin_divsd(__builtin_mulss((int)POSCNT, gEncoderConfig.elettr_deg_per_rev),QE_RESOLUTION);
+            gbufferCANLog[gNumOfBytes].PWMq = Vq;
+            gNumOfBytes = gNumOfBytes + 1;*/
+            
+            gLoggedData[gNumOfBytes] = (I2Tdata.IQMeasured >> 24) & 0x80;
+            gLoggedData[gNumOfBytes] = gLoggedData[0] | ((I2Tdata.IQMeasured >> 5) & 0x7F);
+            gLoggedData[gNumOfBytes+1] = (I2Tdata.IQMeasured << 4) & 0xF0;
+            gLoggedData[gNumOfBytes+1] = gLoggedData[gNumOfBytes+1] | ((enc >> 29) & 0x08);
+            gLoggedData[gNumOfBytes+1] = gLoggedData[gNumOfBytes+1] | ((enc >> 6) & 0x07);
+            gLoggedData[gNumOfBytes+2] = (enc << 2) & 0xFC;
+            gLoggedData[gNumOfBytes+2] = gLoggedData[gNumOfBytes+2] | ((Vq >> 31) & 0x02);
+            gLoggedData[gNumOfBytes+2] = gLoggedData[gNumOfBytes+2] | ((Vq >> 8) & 0x01);
+            gLoggedData[gNumOfBytes+3] = Vq & 0xFF;
+            
+            gNumOfBytes = gNumOfBytes + 4;
         }
     }
 
