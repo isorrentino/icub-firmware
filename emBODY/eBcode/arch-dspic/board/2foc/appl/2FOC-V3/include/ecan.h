@@ -83,6 +83,7 @@ extern volatile int CAN_BusOff;
 // function prototypes as defined in can.c
 extern void ECANInit (void (*RxCb)(unsigned long id, unsigned char len, tCanData *payload));
 extern int ECANSend(unsigned long id, unsigned char len,tCanData *payload);
+extern int ECANSendByteArray(unsigned long id, unsigned char len,char *payload);
 extern int ECANRxFilterAdd(unsigned long id, unsigned long mask);
 extern void ECANStart();
 extern void ECANCheckState();

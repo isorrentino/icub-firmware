@@ -122,8 +122,10 @@ extern void CanIcubProtoTrasmitterSendPeriodicData(void)
         payload.w[3] = gQEPosition >> 16;
 
         msgid = CAN_ICUBPROTO_STDID_MAKE_TX(ICUBCANPROTO_CLASS_PERIODIC_MOTORCONTROL, canprototransmitter_bid, ICUBCANPROTO_PER_MC_MSG__2FOC);
-
-        ECANSend(msgid, 8, &payload);
+        
+        ECANSendByteArray(msgid, CAN_BYTES_TO_LOG, gLoggedData);
+        
+         ECANSend(msgid, 8, &payload);
     }
 }
 

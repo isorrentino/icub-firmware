@@ -1025,6 +1025,7 @@ void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
             gLoggedData[gNumOfBytes+2] = gLoggedData[gNumOfBytes+2] | ((Vq >> 8) & 0x01);
             gLoggedData[gNumOfBytes+3] = Vq & 0xFF;
             
+            
             gNumOfBytes = gNumOfBytes + 4;
         }
     }
