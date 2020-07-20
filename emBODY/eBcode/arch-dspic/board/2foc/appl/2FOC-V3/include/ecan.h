@@ -59,7 +59,7 @@ USE FOR EXTENDED MESSAGES ONLY */
 #define CAN_FILTERMASK2REG_EID1(x) (((x & 0x1FFC)<< 3)|(x & 0x3))
 
 
-
+// Structures definition
 typedef union
 {
     unsigned long dw[2];

@@ -64,50 +64,64 @@ extern void CanIcubProtoTrasmitterSendPeriodicData(void)
     static tCanData payload; // = {{0}};
     unsigned long msgid;
 
-    payload.w[0] = I2Tdata.IQMeasured;
-    payload.w[1] = gQEVelocity;
-    payload.w[2] = gQEPosition & 0xFFFF;
-    payload.w[3] = gQEPosition >> 16;
-
-    msgid = CAN_ICUBPROTO_STDID_MAKE_TX(ICUBCANPROTO_CLASS_PERIODIC_MOTORCONTROL, canprototransmitter_bid, ICUBCANPROTO_PER_MC_MSG__2FOC);
-
-    ECANSend(msgid, 8, &payload);
-
-    //prepare the payload
-    payload.b[0] = gControlMode;
-    payload.b[1] = gEncoderError.bitmask;
-    
-    //payload.w[1] = POSCNT;
-
-    payload.w[1] = (VqRef>>5);
-
-    //payload.b[2] = 0;
-    //payload.b[3] = 0;
-
-    payload.b[4] = SysError.b[0];
-    payload.b[5] = SysError.b[1];
-    payload.b[6] = SysError.b[2];
-    payload.b[7] = SysError.b[3];
-
-    msgid = CAN_ICUBPROTO_STDID_MAKE_TX(ICUBCANPROTO_CLASS_PERIODIC_MOTORCONTROL, canprototransmitter_bid, ICUBCANPROTO_PER_MC_MSG__STATUS);
-
-    ECANSend(msgid, 8, &payload);
-
-    if (MotorConfig.verbose)
+    if (!gLogData) 
     {
-        if (newencdata)
-        {
-            payload.w[0] = dataA;
-            payload.w[1] = dataB;
-            payload.w[2] = dataC;
-            payload.w[3] = dataD;
-        
-            newencdata = FALSE;
-        
-            msgid = CAN_ICUBPROTO_STDID_MAKE_TX(ICUBCANPROTO_CLASS_PERIODIC_MOTORCONTROL, canprototransmitter_bid, ICUBCANPROTO_PER_MC_MSG__DEBUG );
+        payload.w[0] = I2Tdata.IQMeasured;
+        payload.w[1] = gQEVelocity;
+        payload.w[2] = gQEPosition & 0xFFFF;
+        payload.w[3] = gQEPosition >> 16;
 
-            ECANSend(msgid, 8, &payload);
+        msgid = CAN_ICUBPROTO_STDID_MAKE_TX(ICUBCANPROTO_CLASS_PERIODIC_MOTORCONTROL, canprototransmitter_bid, ICUBCANPROTO_PER_MC_MSG__2FOC);
+
+        ECANSend(msgid, 8, &payload);
+
+        //prepare the payload
+        payload.b[0] = gControlMode;
+        payload.b[1] = gEncoderError.bitmask;
+
+        //payload.w[1] = POSCNT;
+
+        payload.w[1] = (VqRef>>5);
+
+        //payload.b[2] = 0;
+        //payload.b[3] = 0;
+
+        payload.b[4] = SysError.b[0];
+        payload.b[5] = SysError.b[1];
+        payload.b[6] = SysError.b[2];
+        payload.b[7] = SysError.b[3];
+
+        msgid = CAN_ICUBPROTO_STDID_MAKE_TX(ICUBCANPROTO_CLASS_PERIODIC_MOTORCONTROL, canprototransmitter_bid, ICUBCANPROTO_PER_MC_MSG__STATUS);
+
+        ECANSend(msgid, 8, &payload);
+
+        if (MotorConfig.verbose)
+        {
+            if (newencdata)
+            {
+                payload.w[0] = dataA;
+                payload.w[1] = dataB;
+                payload.w[2] = dataC;
+                payload.w[3] = dataD;
+
+                newencdata = FALSE;
+
+                msgid = CAN_ICUBPROTO_STDID_MAKE_TX(ICUBCANPROTO_CLASS_PERIODIC_MOTORCONTROL, canprototransmitter_bid, ICUBCANPROTO_PER_MC_MSG__DEBUG );
+
+                ECANSend(msgid, 8, &payload);
+            }
         }
+    }
+    else
+    {
+        payload.w[0] = 1;
+        payload.w[1] = 1;
+        payload.w[2] = 1;
+        payload.w[3] = 1;
+
+        msgid = CAN_ICUBPROTO_STDID_MAKE_TX(ICUBCANPROTO_CLASS_PERIODIC_MOTORCONTROL, canprototransmitter_bid, ICUBCANPROTO_PER_MC_MSG__DEBUG);
+
+        ECANSend(msgid, 8, &payload);
     }
 }
 

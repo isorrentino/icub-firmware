@@ -205,6 +205,8 @@ volatile int  SKi = 0x10;
 volatile char SKs = 0x0A;
 volatile long SIntLimit = 0;//800L*1024L;
 
+volatile BOOL gLogData = FALSE;
+
 /////////////////////////////////////////
 
 void setMaxCurrent(int nom, int peak, int ovr)
@@ -532,6 +534,8 @@ int alignRotor(volatile int* IqRef)
 
 extern volatile int dataC;
 extern volatile int dataD;
+volatile short gNumOfPackages = 0;
+volatile tCanLogData gbufferCANLog[CAN_PACK_TO_LOG];
 
 void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
 {
@@ -999,6 +1003,23 @@ void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
             I2Twatcher();
         }
     }
+    
+    ///////////////////////////////////////////////////
+    // Fill structure to log data if the logging mode is enabled
+    if (gLogData) {
+        gbufferCANLog[gNumOfPackages].Iq = I2Tdata.IQMeasured;
+        gbufferCANLog[gNumOfPackages].electAngle = gEncoderConfig.offset + __builtin_divsd(__builtin_mulss((int)POSCNT, gEncoderConfig.elettr_deg_per_rev),QE_RESOLUTION);
+        gbufferCANLog[gNumOfPackages].PWMq = Vq;
+        
+        if (gNumOfPackages < CAN_PACK_TO_LOG)
+        {
+            gNumOfPackages = gNumOfPackages + 1;
+        }
+        else
+        {
+            gNumOfPackages = 0;
+        }
+    }
 
     //
     ////////////////////////////////////////////////////////////////////////////
@@ -1362,6 +1383,8 @@ int main(void)
 #ifdef CALIBRATION
     else
     {
+        
+        
         static unsigned long cycle = 0;
 
         ++cycle;
