@@ -1015,23 +1015,21 @@ void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
             gbufferCANLog[gNumOfBytes].PWMq = Vq;
             gNumOfBytes = gNumOfBytes + 1;*/
             
+            int posDeg = (gQEPosition / 14400) * 360;
+            
             gLoggedData[gNumOfBytes] = (I2Tdata.IQMeasured >> 24) & 0x80;
             gLoggedData[gNumOfBytes] = gLoggedData[0] | ((I2Tdata.IQMeasured >> 5) & 0x7F);
             gLoggedData[gNumOfBytes+1] = (I2Tdata.IQMeasured << 4) & 0xF0;
-            gLoggedData[gNumOfBytes+1] = gLoggedData[gNumOfBytes+1] | ((enc >> 29) & 0x08);
-            gLoggedData[gNumOfBytes+1] = gLoggedData[gNumOfBytes+1] | ((enc >> 6) & 0x07);
-            gLoggedData[gNumOfBytes+2] = (enc << 2) & 0xFC;
+            gLoggedData[gNumOfBytes+1] = gLoggedData[gNumOfBytes+1] | ((posDeg >> 29) & 0x08);
+            gLoggedData[gNumOfBytes+1] = gLoggedData[gNumOfBytes+1] | ((posDeg >> 6) & 0x07);
+            gLoggedData[gNumOfBytes+2] = (posDeg << 2) & 0xFC;
             gLoggedData[gNumOfBytes+2] = gLoggedData[gNumOfBytes+2] | ((Vq >> 31) & 0x02);
             gLoggedData[gNumOfBytes+2] = gLoggedData[gNumOfBytes+2] | ((Vq >> 8) & 0x01);
             gLoggedData[gNumOfBytes+3] = Vq & 0xFF;
             
-            
             gNumOfBytes = gNumOfBytes + 4;
         }
     }
-
-    //
-    ////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////////////////////
     //Clear the DMA0 Interrupt Flag
