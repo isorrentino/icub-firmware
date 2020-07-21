@@ -116,16 +116,9 @@ extern void CanIcubProtoTrasmitterSendPeriodicData(void)
     }
     else
     {
-        //payload.w[0] = I2Tdata.IQMeasured;
-        //payload.w[1] = 0xFFFF;
-        //payload.w[2] = gQEPosition & 0xFFFF;
-        //payload.w[3] = gQEPosition >> 16;
-
-        msgid = CAN_ICUBPROTO_STDID_MAKE_TX(ICUBCANPROTO_CLASS_PERIODIC_MOTORCONTROL, canprototransmitter_bid, ICUBCANPROTO_PER_MC_MSG__DEBUG);
+        msgid = CAN_ICUBPROTO_STDID_MAKE_TX(ICUBCANPROTO_CLASS_PERIODIC_MOTORCONTROL, canprototransmitter_bid, ICUBCANPROTO_PER_MC_MSG__2FOC);
         
-        ECANSendByteArray(msgid, CAN_BYTES_TO_LOG, gLoggedData);
-        
-        //ECANSend(msgid, 8, &payload);
+        ECANSendByteArray(msgid, CAN_BYTES_TO_LOG, (char *)gLoggedData);
     }
 }
 

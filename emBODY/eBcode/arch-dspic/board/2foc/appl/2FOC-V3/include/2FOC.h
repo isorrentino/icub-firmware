@@ -17,7 +17,7 @@ extern "C" {
 //#define HAS_TSENS   0x0004
 //#define HAS_INDEX   0x0008
     
-#define CAN_BYTES_TO_LOG 60
+#define CAN_BYTES_TO_LOG 80
 
 typedef struct
 {
