@@ -76,7 +76,7 @@ extern void CanIcubProtoTrasmitterSendPeriodicData(void)
         msgid = CAN_ICUBPROTO_STDID_MAKE_TX(ICUBCANPROTO_CLASS_PERIODIC_MOTORCONTROL, canprototransmitter_bid, ICUBCANPROTO_PER_MC_MSG__2FOC);
 
         ECANSend(msgid, 8, &payload);
-
+    }    
         //prepare the payload
         payload.b[0] = gControlMode;
         payload.b[1] = gEncoderError.bitmask;
@@ -113,11 +113,13 @@ extern void CanIcubProtoTrasmitterSendPeriodicData(void)
                 ECANSend(msgid, 8, &payload);
             }
         }
-    }
+    /*}
     else
-    {
+    {*/
+    if(gLogData!=0) {
         msgid = CAN_ICUBPROTO_STDID_MAKE_TX(ICUBCANPROTO_CLASS_PERIODIC_MOTORCONTROL, canprototransmitter_bid, ICUBCANPROTO_PER_MC_MSG__2FOC);
         
+        //ECANSendByteArray(msgid, CAN_BYTES_TO_LOG, (char *)gLoggedData);
         ECANSendByteArray(msgid, CAN_BYTES_TO_LOG, (char *)gLoggedData);
     }
 }

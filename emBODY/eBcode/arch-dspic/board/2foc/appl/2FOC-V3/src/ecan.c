@@ -57,13 +57,13 @@ tCanErrors CanErrors = {
 typedef unsigned int ECAN1RXMSGBUF [8][ECAN1_MSG_BUF_LENGTH];
 typedef unsigned int ECAN1TXMSGBUF [8][ECAN1_MSG_BUF_LENGTH];
 
-typedef unsigned int ECAN3TXMSGBUF [8][80];
+typedef unsigned int ECAN3TXMSGBUF [8][8];
 
 // Define ECAN Message Buffer
 ECAN1TXMSGBUF ecan1MsgBufTx __attribute__((space(dma),aligned(ECAN1_MSG_BUF_LENGTH*16)));
 ECAN1RXMSGBUF ecan1MsgBufRx __attribute__((space(dma),aligned(ECAN1_MSG_BUF_LENGTH*16)));
 
-ECAN3TXMSGBUF ecan3MsgBufTx __attribute__((space(dma),aligned(256)));
+ECAN3TXMSGBUF ecan3MsgBufTx __attribute__((space(dma),aligned(ECAN1_MSG_BUF_LENGTH*16)));
 
 void (*ECANRxCb)(unsigned long id, unsigned char len, tCanData *payload);
 
@@ -259,24 +259,15 @@ void ECANDma2Init(void)
   DMA2CONbits.CHEN=1;
 }
 
-void ECANDma3Init(void)
-// DMA Initialization for ECAN1 Transmission
-{
-  // clear the collission flags
-  DMACS0 = 0;	
-  // setup channel 1 for peripheral indirect addressing mode
-  // normal operation, word operation and select as Tx to peripheral
-  DMA3CON = 0x2020; 
-  // setup the address of the peripheral ECAN1 (C1TXD)
-  DMA3PAD=0x0442;
-  // Set the data block transfer size of 8 
-  DMA3CNT=0x0050;
-  // automatic DMA Tx initiation by DMA request
-  DMA3REQ=0x0046;	
-  // DPSRAM TX start adddress offset value
-  DMA3STA=__builtin_dmaoffset(ecan3MsgBufTx); 
+void ECANDma1ReconfInit(void) {
   // enable the channel
-  DMA3CONbits.CHEN=1;	 
+  DMA1CONbits.CHEN=0;
+  // Set the data block transfer size of 8
+  DMA2CNT=0x0007;
+  // DPSRAM TX start adddress offset value
+  DMA1STA=__builtin_dmaoffset(ecan3MsgBufTx);
+  // enable the channel
+  DMA1CONbits.CHEN=1;
 }
 
 int ECANRxFilterAdd(unsigned long id, unsigned long mask)
@@ -758,14 +749,27 @@ int ECANSend(unsigned long id, unsigned char len, tCanData *payload)
     return 0; 
 }
 
-int ECANSendByteArray(unsigned long id, unsigned char len, char *payload)
-{
-    int bufferID = findFreeBuffer();
+int ECANSendByteArray(unsigned long id, unsigned char len, char *payload) {
+    int splitLength = 8;
+    int payloadOffset = 0;
     
-    if (bufferID != -1) {
-        ECANPrepareTxBuffer((tCANMessage*) ecan3MsgBufTx[bufferID], id, len, payload);
+    while (len > 0) {
+        int bufferID = findFreeBuffer();
+        
+        if (bufferID != -1) {
+            if (len < splitLength)
+            {
+                splitLength = len;
+            }
+            
+            ECANPrepareTxBuffer((tCANMessage*) ecan3MsgBufTx[bufferID], id, splitLength, payload[payloadOffset]);
+           
+            len -= splitLength;
+            
+            payloadOffset += splitLength;
+        }
     }
-    
+
     return 0; 
 }
 
