@@ -69,6 +69,15 @@ typedef union
 
 /*typedef struct
 {
+    // Byte 1
+    unsigned ID:8;
+    // Byte 2 - 4
+    unsigned POS:12;
+    unsigned VEL:12;
+} tCanPosVel;*/
+
+/*typedef struct
+{
  unsigned CAN_RTRFlagActive:1;
  unsigned CAN_BufferOverRun:1;
  unsigned CAN_BusOff:1;

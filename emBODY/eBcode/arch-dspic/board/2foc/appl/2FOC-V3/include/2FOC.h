@@ -18,6 +18,8 @@ extern "C" {
 //#define HAS_INDEX   0x0008
     
 #define CAN_BYTES_TO_LOG 80
+    
+    #include "ecan.h"
 
 typedef struct
 {
@@ -57,6 +59,7 @@ typedef union
 volatile extern uint8_t gLogData;
 volatile extern int8_t gNumOfBytes;
 volatile extern char gLoggedData[CAN_BYTES_TO_LOG];
+//volatile extern tCanPosVel gLoggedData[CAN_BYTES_TO_LOG/4];
 
 volatile extern tMotorConfig MotorConfig;
 

@@ -738,6 +738,271 @@ int findFreeBuffer()
     return -1;
 }
 
+int findFreeBufferAdvanced()
+{
+    static int ecanprio[8] = {0,0,0,0,0,0,0,0};
+
+    // If TX is still pending on both buffers, give up!
+    if( C1TR01CONbits.TXREQ0 && C1TR01CONbits.TXREQ1 && C1TR23CONbits.TXREQ2 &&  C1TR23CONbits.TXREQ3 
+            && C1TR45CONbits.TXREQ4 && C1TR45CONbits.TXREQ5 && C1TR67CONbits.TXREQ6 && C1TR67CONbits.TXREQ7)
+    {
+      return -1;
+    }
+    
+    // If Buf0 is free then use Buf0
+    if(!C1TR01CONbits.TXREQ0){
+        // use buf 0
+        
+        //	C1TR01CONbits.TX0PRI=0b1;
+
+	    ecanprio[0] = 0;
+        
+        if((ecanprio[1] < 0b11) && (ecanprio[2] < 0b11) && (ecanprio[3]< 0b11)
+                && (ecanprio[4]< 0b11) && (ecanprio[5]< 0b11) && (ecanprio[6]< 0b11) && (ecanprio[7]< 0b11)){
+            ecanprio[1]++;
+            ecanprio[2]++;
+            ecanprio[3]++;
+            ecanprio[4]++;
+            ecanprio[5]++;
+            ecanprio[6]++;
+            ecanprio[7]++;
+        }
+        
+        C1TR01CONbits.TX0PRI = ecanprio[0];
+        C1TR01CONbits.TX1PRI = ecanprio[1];
+        C1TR23CONbits.TX2PRI = ecanprio[2];
+        C1TR23CONbits.TX3PRI = ecanprio[3];
+        C1TR45CONbits.TX4PRI = ecanprio[4];
+        C1TR45CONbits.TX5PRI = ecanprio[5];
+        C1TR67CONbits.TX6PRI = ecanprio[6];
+        C1TR67CONbits.TX7PRI = ecanprio[7];
+
+        C1TR01CONbits.TXREQ0 = 1;
+ 
+        return 0;
+        
+    }
+    else if(!C1TR01CONbits.TXREQ1)
+    { 
+        // use buf 1
+        
+        ecanprio[1] = 0;
+
+        if((ecanprio[0] < 0b11) && (ecanprio[2] < 0b11) && (ecanprio[3]< 0b11)
+                && (ecanprio[4]< 0b11) && (ecanprio[5]< 0b11) && (ecanprio[6]< 0b11) && (ecanprio[7]< 0b11)){
+            ecanprio[0]++;
+            ecanprio[2]++;
+            ecanprio[3]++;
+            ecanprio[4]++;
+            ecanprio[5]++;
+            ecanprio[6]++;
+            ecanprio[7]++;
+        }
+
+        C1TR01CONbits.TX0PRI = ecanprio[0];
+        C1TR01CONbits.TX1PRI = ecanprio[1];
+        C1TR23CONbits.TX2PRI = ecanprio[2];
+        C1TR23CONbits.TX3PRI = ecanprio[3];
+        C1TR45CONbits.TX4PRI = ecanprio[4];
+        C1TR45CONbits.TX5PRI = ecanprio[5];
+        C1TR67CONbits.TX6PRI = ecanprio[6];
+        C1TR67CONbits.TX7PRI = ecanprio[7];
+        
+          // set the message for transmission
+        C1TR01CONbits.TXREQ1 = 1;
+    
+        return 1;
+        
+    }
+    else if(!C1TR23CONbits.TXREQ2)
+    {
+        // use buf 2 
+        
+        // set the message for transmission
+        ecanprio[2] = 0;
+
+        if((ecanprio[0] < 0b11) && (ecanprio[1] < 0b11) && (ecanprio[3]< 0b11)
+                && (ecanprio[4]< 0b11) && (ecanprio[5]< 0b11) && (ecanprio[6]< 0b11) && (ecanprio[7]< 0b11)){
+            ecanprio[0]++;
+            ecanprio[1]++;
+            ecanprio[3]++;
+            ecanprio[4]++;
+            ecanprio[5]++;
+            ecanprio[6]++;
+            ecanprio[7]++;
+        }
+
+        C1TR01CONbits.TX0PRI = ecanprio[0];
+        C1TR01CONbits.TX1PRI = ecanprio[1];
+        C1TR23CONbits.TX2PRI = ecanprio[2];
+        C1TR23CONbits.TX3PRI = ecanprio[3];
+        C1TR45CONbits.TX4PRI = ecanprio[4];
+        C1TR45CONbits.TX5PRI = ecanprio[5];
+        C1TR67CONbits.TX6PRI = ecanprio[6];
+        C1TR67CONbits.TX7PRI = ecanprio[7];
+        
+        C1TR23CONbits.TXREQ2 = 1;
+        return 2;
+    }
+    //#ifdef ECAN_TX4BUF
+	else if(!C1TR23CONbits.TXREQ3)
+    {
+        // use buf 3
+      
+        // set the message for transmission
+        ecanprio[3] = 0;
+
+        if((ecanprio[0] < 0b11) && (ecanprio[1] < 0b11) && (ecanprio[2]< 0b11)
+                && (ecanprio[4]< 0b11) && (ecanprio[5]< 0b11) && (ecanprio[6]< 0b11) && (ecanprio[7]< 0b11)){
+            ecanprio[0]++;
+            ecanprio[1]++;
+            ecanprio[2]++;
+            ecanprio[4]++;
+            ecanprio[5]++;
+            ecanprio[6]++;
+            ecanprio[7]++;
+        }
+        C1TR01CONbits.TX0PRI = ecanprio[0];
+        C1TR01CONbits.TX1PRI = ecanprio[1];
+        C1TR23CONbits.TX2PRI = ecanprio[2];
+        C1TR23CONbits.TX3PRI = ecanprio[3];
+        C1TR45CONbits.TX4PRI = ecanprio[4];
+        C1TR45CONbits.TX5PRI = ecanprio[5];
+        C1TR67CONbits.TX6PRI = ecanprio[6];
+        C1TR67CONbits.TX7PRI = ecanprio[7];
+			
+        C1TR23CONbits.TXREQ3 = 1;
+        
+        return 3;
+	}
+    else if(!C1TR45CONbits.TXREQ4)
+    {
+        // use buf 4
+      
+        // set the message for transmission
+        ecanprio[4] = 0;
+
+        if((ecanprio[0] < 0b11) && (ecanprio[1] < 0b11) && (ecanprio[2]< 0b11)
+                && (ecanprio[3]< 0b11) && (ecanprio[5]< 0b11) && (ecanprio[6]< 0b11) && (ecanprio[7]< 0b11)){
+            ecanprio[0]++;
+            ecanprio[1]++;
+            ecanprio[2]++;
+            ecanprio[3]++;
+            ecanprio[5]++;
+            ecanprio[6]++;
+            ecanprio[7]++;
+        }
+
+        C1TR01CONbits.TX0PRI = ecanprio[0];
+        C1TR01CONbits.TX1PRI = ecanprio[1];
+        C1TR23CONbits.TX2PRI = ecanprio[2];
+        C1TR23CONbits.TX3PRI = ecanprio[3];
+        C1TR45CONbits.TX4PRI = ecanprio[4];
+        C1TR45CONbits.TX5PRI = ecanprio[5];
+        C1TR67CONbits.TX6PRI = ecanprio[6];
+        C1TR67CONbits.TX7PRI = ecanprio[7];
+			
+        C1TR45CONbits.TXREQ4 = 1;
+        
+        return 4;
+	}
+    else if(!C1TR45CONbits.TXREQ5)
+    {
+        // use buf 5
+      
+        // set the message for transmission
+        ecanprio[5] = 0;
+
+        if((ecanprio[0] < 0b11) && (ecanprio[1] < 0b11) && (ecanprio[2]< 0b11)
+                && (ecanprio[3]< 0b11) && (ecanprio[4]< 0b11) && (ecanprio[6]< 0b11) && (ecanprio[7]< 0b11)){
+            ecanprio[0]++;
+            ecanprio[1]++;
+            ecanprio[2]++;
+            ecanprio[3]++;
+            ecanprio[4]++;
+            ecanprio[6]++;
+            ecanprio[7]++;
+        }
+
+        C1TR01CONbits.TX0PRI = ecanprio[0];
+        C1TR01CONbits.TX1PRI = ecanprio[1];
+        C1TR23CONbits.TX2PRI = ecanprio[2];
+        C1TR23CONbits.TX3PRI = ecanprio[3];
+        C1TR45CONbits.TX4PRI = ecanprio[4];
+        C1TR45CONbits.TX5PRI = ecanprio[5];
+        C1TR67CONbits.TX6PRI = ecanprio[6];
+        C1TR67CONbits.TX7PRI = ecanprio[7];
+			
+        C1TR45CONbits.TXREQ5 = 1;
+        
+        return 5;
+	}
+    else if(!C1TR67CONbits.TXREQ6)
+    {
+        // use buf 6
+      
+        // set the message for transmission
+        ecanprio[6] = 0;
+
+        if((ecanprio[0] < 0b11) && (ecanprio[1] < 0b11) && (ecanprio[2]< 0b11)
+                && (ecanprio[3]< 0b11) && (ecanprio[4]< 0b11) && (ecanprio[5]< 0b11) && (ecanprio[7]< 0b11)){
+            ecanprio[0]++;
+            ecanprio[1]++;
+            ecanprio[2]++;
+            ecanprio[3]++;
+            ecanprio[4]++;
+            ecanprio[5]++;
+            ecanprio[7]++;
+        }
+
+        C1TR01CONbits.TX0PRI = ecanprio[0];
+        C1TR01CONbits.TX1PRI = ecanprio[1];
+        C1TR23CONbits.TX2PRI = ecanprio[2];
+        C1TR23CONbits.TX3PRI = ecanprio[3];
+        C1TR45CONbits.TX4PRI = ecanprio[4];
+        C1TR45CONbits.TX5PRI = ecanprio[5];
+        C1TR67CONbits.TX6PRI = ecanprio[6];
+        C1TR67CONbits.TX7PRI = ecanprio[7];
+			
+        C1TR67CONbits.TXREQ6 = 1;
+        
+        return 6;
+	}
+    else
+    {
+        // use buf 7
+      
+        // set the message for transmission
+        ecanprio[7] = 0;
+
+        if((ecanprio[0] < 0b11) && (ecanprio[1] < 0b11) && (ecanprio[2]< 0b11)
+                && (ecanprio[3]< 0b11) && (ecanprio[4]< 0b11) && (ecanprio[5]< 0b11) && (ecanprio[6]< 0b11)){
+            ecanprio[0]++;
+            ecanprio[1]++;
+            ecanprio[2]++;
+            ecanprio[3]++;
+            ecanprio[4]++;
+            ecanprio[5]++;
+            ecanprio[6]++;
+        }
+
+        C1TR01CONbits.TX0PRI = ecanprio[0];
+        C1TR01CONbits.TX1PRI = ecanprio[1];
+        C1TR23CONbits.TX2PRI = ecanprio[2];
+        C1TR23CONbits.TX3PRI = ecanprio[3];
+        C1TR45CONbits.TX4PRI = ecanprio[4];
+        C1TR45CONbits.TX5PRI = ecanprio[5];
+        C1TR67CONbits.TX6PRI = ecanprio[6];
+        C1TR67CONbits.TX7PRI = ecanprio[7];
+			
+        C1TR67CONbits.TXREQ7 = 1;
+        
+        return 7;
+    }
+    
+    return -1;
+}
+
 int ECANSend(unsigned long id, unsigned char len, tCanData *payload) 
 {
     int bufferID = findFreeBuffer();
@@ -754,7 +1019,7 @@ int ECANSendByteArray(unsigned long id, unsigned char len, char *payload) {
     int payloadOffset = 0;
     
     while (len > 0) {
-        int bufferID = findFreeBuffer();
+        int bufferID = findFreeBufferAdvanced();
         
         if (bufferID != -1) {
             if (len < splitLength)
@@ -762,13 +1027,28 @@ int ECANSendByteArray(unsigned long id, unsigned char len, char *payload) {
                 splitLength = len;
             }
             
-            ECANPrepareTxBuffer((tCANMessage*) ecan3MsgBufTx[bufferID], id, splitLength, payload[payloadOffset]);
+            ECANPrepareTxBuffer((tCANMessage*) ecan3MsgBufTx[bufferID], id, splitLength, &payload[payloadOffset]);
            
             len -= splitLength;
             
             payloadOffset += splitLength;
         }
     }
+    
+    /*int bufferID;
+    
+    int sample = 0;
+    
+    while (sample < 20)
+    {
+        bufferID = findFreeBuffer();
+        
+        if (bufferID != -1) {
+            ECANPrepareTxBuffer((tCANMessage*) ecan3MsgBufTx[bufferID], id, len, &payload[sample]);
+            
+            sample+=2;
+        }
+    }*/
 
     return 0; 
 }
