@@ -1027,11 +1027,11 @@ void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
             gLoggedData[(gNumOfBytes+4)/4 - 1].POS = ((gQEPosition >> 20) & 0x800) | (gQEPosition & 0x7FF);
             gLoggedData[(gNumOfBytes+4)/4 - 1].VEL = ((gQEVelocity >> 20) & 0x800) | (gQEVelocity & 0x7FF);*/
             
-            short pos = gQEPosition * 360;
+            
             gLoggedData[gNumOfBytes] = ((gNumOfBytes+4)/4 - 1) & 0xFF;
-            gLoggedData[gNumOfBytes + 1] = (pos >> 8) & 0x80;
-            gLoggedData[gNumOfBytes + 1] = gLoggedData[gNumOfBytes + 1] | ((pos >> 4) & 0x7F);
-            gLoggedData[gNumOfBytes + 2] = (pos << 4) & 0xF0;
+            gLoggedData[gNumOfBytes + 1] = (gQEPosition >> 24) & 0x80;
+            gLoggedData[gNumOfBytes + 1] = gLoggedData[gNumOfBytes + 1] | ((gQEPosition >> 4) & 0x7F);
+            gLoggedData[gNumOfBytes + 2] = (gQEPosition << 4) & 0xF0;
             gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | (gQEVelocity >> 12) & 0x08;
             gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | (gQEVelocity >> 8) & 0x07;
             gLoggedData[gNumOfBytes + 3] = gQEVelocity & 0xFF;
