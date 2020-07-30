@@ -535,7 +535,7 @@ int alignRotor(volatile int* IqRef)
 extern volatile int dataC;
 extern volatile int dataD;
 
-volatile int8_t gNumOfBytes = 0;
+volatile uint8_t gNumOfBytes = 0;
 volatile char gLoggedData[CAN_BYTES_TO_LOG];
 //volatile tCanPosVel gLoggedData[CAN_BYTES_TO_LOG/4];
 
@@ -1028,13 +1028,31 @@ void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
             gLoggedData[(gNumOfBytes+4)/4 - 1].VEL = ((gQEVelocity >> 20) & 0x800) | (gQEVelocity & 0x7FF);*/
             
             
-            gLoggedData[gNumOfBytes] = ((gNumOfBytes+4)/4 - 1) & 0xFF;
-            gLoggedData[gNumOfBytes + 1] = (gQEPosition >> 24) & 0x80;
-            gLoggedData[gNumOfBytes + 1] = gLoggedData[gNumOfBytes + 1] | ((gQEPosition >> 4) & 0x7F);
-            gLoggedData[gNumOfBytes + 2] = (gQEPosition << 4) & 0xF0;
+            int pos = (gQEPosition * 360) >> 16;
+            
+            /*gLoggedData[gNumOfBytes] = ((gNumOfBytes+4)/4 - 1) & 0xFF;
+            gLoggedData[gNumOfBytes + 1] = (pos >> 8) & 0x80;
+            gLoggedData[gNumOfBytes + 1] = gLoggedData[gNumOfBytes + 1] | ((pos >> 4) & 0x7F);
+            gLoggedData[gNumOfBytes + 2] = (pos << 4) & 0xF0;
+            gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | (gQEVelocity >> 12) & 0x08;
+            gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | (gQEVelocity >> 8) & 0x07;
+            gLoggedData[gNumOfBytes + 3] = gQEVelocity & 0xFF;*/
+            
+            
+            gLoggedData[gNumOfBytes] = (((gNumOfBytes+4)/4 - 1) << 3) & 0xF8;
+            gLoggedData[gNumOfBytes] = gLoggedData[gNumOfBytes] | ((pos >> 13) & 0x04);
+            gLoggedData[gNumOfBytes] = gLoggedData[gNumOfBytes] | ((pos >> 12) & 0x03);
+            gLoggedData[gNumOfBytes + 1] = (pos >> 4) & 0xFF;
+            gLoggedData[gNumOfBytes + 2] = (pos << 4) & 0xF0;
             gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | (gQEVelocity >> 12) & 0x08;
             gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | (gQEVelocity >> 8) & 0x07;
             gLoggedData[gNumOfBytes + 3] = gQEVelocity & 0xFF;
+            
+            
+            //gLoggedData[gNumOfBytes] = (gQEPosition >> 24) & 0xFF;
+            //gLoggedData[gNumOfBytes+1] = (gQEPosition >> 16) & 0xFF;
+            //gLoggedData[gNumOfBytes+2] = (pos >> 8) & 0xFF;
+            //gLoggedData[gNumOfBytes+3] = pos & 0xFF;
             
             gNumOfBytes = gNumOfBytes + 4;
         }

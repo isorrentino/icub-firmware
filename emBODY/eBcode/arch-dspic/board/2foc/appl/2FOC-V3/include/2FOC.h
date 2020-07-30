@@ -57,7 +57,7 @@ typedef union
 } __attribute__((__packed__)) tMotorConfig;
 
 volatile extern uint8_t gLogData;
-volatile extern int8_t gNumOfBytes;
+volatile extern uint8_t gNumOfBytes;
 volatile extern char gLoggedData[CAN_BYTES_TO_LOG];
 //volatile extern tCanPosVel gLoggedData[CAN_BYTES_TO_LOG/4];
 
