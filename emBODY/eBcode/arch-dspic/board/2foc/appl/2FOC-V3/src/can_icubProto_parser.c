@@ -456,7 +456,7 @@ static int s_canIcubProtoParser_parse_pollingMsg(tCanData *rxpayload, unsigned c
 
         gLogData = (uint8_t)rxpayload->b[1];
 
-        if (gLogData) 
+        if (gLogData)
         {
             ECANDma1ReconfInit();
         }

@@ -132,6 +132,8 @@ _FICD(ICS_PGD3 & JTAGEN_OFF); // & COE_ON ); //BKBUG_OFF
 #include "stdint.h"
 
 /////////////////////////////////////////
+//#include "KF_2FOC.h"
+
 
 //#define CALIBRATION
 
@@ -294,6 +296,11 @@ void ResetSetpointWatchdog()
         */
         ///////////////////////////
 
+float xh[3] = {0, 0, 0};
+float R = 1e-10;
+float Q[9] = {5e-4, 0, 0, 0, 1e-1, 0, 0, 0, 1};
+float Px[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+
 BOOL updateOdometry()
 {
     if (MotorConfig.has_qe || MotorConfig.has_speed_qe)
@@ -316,6 +323,11 @@ BOOL updateOdometry()
 
         gQEPosition += delta;
 
+        ///////////////////////////////////////////////////
+        //int pos = (gQEPosition * 360) >> 16;
+        //KF_2FOC(xh,pos,R,Q,Px);
+        ///////////////////////////////////////////////////
+        
         if (++speed_undersampler == UNDERSAMPLING) // we obtain ticks per ms
         {
             speed_undersampler = 0;
@@ -324,7 +336,7 @@ BOOL updateOdometry()
 
             gQEVelocity = (1 + gQEVelocity + gQEPosition - QEPosition_old) / 2;
 
-            QEPosition_old = gQEPosition;
+            QEPosition_old = gQEPosition; 
 
             return TRUE;
         }
@@ -535,7 +547,8 @@ int alignRotor(volatile int* IqRef)
 extern volatile int dataC;
 extern volatile int dataD;
 
-volatile uint8_t gNumOfBytes = 0;
+volatile uint16_t gNumOfBytes = 0;
+volatile uint8_t gMessIndex = 0;
 volatile char gLoggedData[CAN_BYTES_TO_LOG];
 //volatile tCanPosVel gLoggedData[CAN_BYTES_TO_LOG/4];
 
@@ -1011,50 +1024,46 @@ void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
     if (gLogData) {
         if (gNumOfBytes < CAN_BYTES_TO_LOG)
         {
-            // Write iq, electrical angle, PWMq in 4 bytes
-            /*gLoggedData[gNumOfBytes] = (I2Tdata.IQMeasured >> 24) & 0x80;
-            gLoggedData[gNumOfBytes] = gLoggedData[0] | ((I2Tdata.IQMeasured >> 4) & 0x7F);
-            gLoggedData[gNumOfBytes+1] = (I2Tdata.IQMeasured << 4) & 0xF0;
-            gLoggedData[gNumOfBytes+1] = gLoggedData[gNumOfBytes+1] | ((enc >> 29) & 0x08);
-            gLoggedData[gNumOfBytes+1] = gLoggedData[gNumOfBytes+1] | ((enc >> 6) & 0x07);
-            gLoggedData[gNumOfBytes+2] = (enc << 2) & 0xFC;
-            gLoggedData[gNumOfBytes+2] = gLoggedData[gNumOfBytes+2] | ((Vq >> 31) & 0x02);
-            gLoggedData[gNumOfBytes+2] = gLoggedData[gNumOfBytes+2] | ((Vq >> 8) & 0x01);
-            gLoggedData[gNumOfBytes+3] = Vq & 0xFF;*/
+            if (gMessIndex > 255)
+            {
+                gMessIndex = 0;
+            }    
             
-            // Write messIndex, pos, vel in 3 bytes
-            /*gLoggedData[(gNumOfBytes+4)/4 - 1].ID = ((gNumOfBytes+4)/4 - 1) & 0xFF;
-            gLoggedData[(gNumOfBytes+4)/4 - 1].POS = ((gQEPosition >> 20) & 0x800) | (gQEPosition & 0x7FF);
-            gLoggedData[(gNumOfBytes+4)/4 - 1].VEL = ((gQEVelocity >> 20) & 0x800) | (gQEVelocity & 0x7FF);*/
+            // Modified 01/10/2020 by Ines
+            // To log to messages (index, pos, vel) in 1 message
+            /*int pos = (gQEPosition * 360) >> 16;
             
-            
-            int pos = (gQEPosition * 360) >> 16;
-            
-            /*gLoggedData[gNumOfBytes] = ((gNumOfBytes+4)/4 - 1) & 0xFF;
-            gLoggedData[gNumOfBytes + 1] = (pos >> 8) & 0x80;
-            gLoggedData[gNumOfBytes + 1] = gLoggedData[gNumOfBytes + 1] | ((pos >> 4) & 0x7F);
-            gLoggedData[gNumOfBytes + 2] = (pos << 4) & 0xF0;
-            gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | (gQEVelocity >> 12) & 0x08;
-            gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | (gQEVelocity >> 8) & 0x07;
-            gLoggedData[gNumOfBytes + 3] = gQEVelocity & 0xFF;*/
-            
-            
-            gLoggedData[gNumOfBytes] = (((gNumOfBytes+4)/4 - 1) << 3) & 0xF8;
+            gLoggedData[gNumOfBytes] = (gMessIndex << 3) & 0xF8;
             gLoggedData[gNumOfBytes] = gLoggedData[gNumOfBytes] | ((pos >> 13) & 0x04);
             gLoggedData[gNumOfBytes] = gLoggedData[gNumOfBytes] | ((pos >> 12) & 0x03);
             gLoggedData[gNumOfBytes + 1] = (pos >> 4) & 0xFF;
             gLoggedData[gNumOfBytes + 2] = (pos << 4) & 0xF0;
-            gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | (gQEVelocity >> 12) & 0x08;
-            gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | (gQEVelocity >> 8) & 0x07;
+            gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | ((gQEVelocity >> 12) & 0x08);
+            gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | ((gQEVelocity >> 8) & 0x07);
             gLoggedData[gNumOfBytes + 3] = gQEVelocity & 0xFF;
+                        
+            gNumOfBytes = gNumOfBytes + 4;*/
+            
+            /*int pos = (gQEPosition * 360) >> 16;
+            // New message
+            gLoggedData[gNumOfBytes] = (pos >> 8) & 0xFF;
+            gLoggedData[gNumOfBytes+1] = pos & 0xFF;
+            gLoggedData[gNumOfBytes+2] = (gQEVelocity >> 8) & 0xFF;
+            gLoggedData[gNumOfBytes+3] = gQEVelocity & 0xFF;*/
             
             
-            //gLoggedData[gNumOfBytes] = (gQEPosition >> 24) & 0xFF;
-            //gLoggedData[gNumOfBytes+1] = (gQEPosition >> 16) & 0xFF;
-            //gLoggedData[gNumOfBytes+2] = (pos >> 8) & 0xFF;
-            //gLoggedData[gNumOfBytes+3] = pos & 0xFF;
+            gLoggedData[gNumOfBytes] = gMessIndex;
+            gLoggedData[gNumOfBytes + 1] = (gQEPosition >> 24) & 0xFF;
+            gLoggedData[gNumOfBytes + 2] = (gQEPosition >> 16) & 0xFF;
+            gLoggedData[gNumOfBytes + 3] = (gQEPosition >> 8) & 0xFF;
+            gLoggedData[gNumOfBytes + 4] = gQEPosition & 0xFF;
+            gLoggedData[gNumOfBytes + 5] = (gQEVelocity >> 8) & 0xFF;
+            gLoggedData[gNumOfBytes + 6] = gQEVelocity & 0xFF;
             
-            gNumOfBytes = gNumOfBytes + 4;
+                        
+            gNumOfBytes = gNumOfBytes + 8;
+            
+            gMessIndex++;
         }
     }
 
