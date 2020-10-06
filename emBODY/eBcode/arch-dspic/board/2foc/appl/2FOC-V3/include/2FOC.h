@@ -16,10 +16,12 @@ extern "C" {
 //#define HAS_HALL    0x0002
 //#define HAS_TSENS   0x0004
 //#define HAS_INDEX   0x0008
-    
-#define CAN_BYTES_TO_LOG 80
-    
-    #include "ecan.h"
+  
+// Modified 01/10/2020 by Ines
+//#define CAN_BYTES_TO_LOG 80
+#define CAN_BYTES_TO_LOG 160
+
+#include "ecan.h"
 
 typedef struct
 {
@@ -57,7 +59,8 @@ typedef union
 } __attribute__((__packed__)) tMotorConfig;
 
 volatile extern uint8_t gLogData;
-volatile extern uint8_t gNumOfBytes;
+volatile extern uint8_t gMessIndex;
+volatile extern uint16_t gNumOfBytes;
 volatile extern char gLoggedData[CAN_BYTES_TO_LOG];
 //volatile extern tCanPosVel gLoggedData[CAN_BYTES_TO_LOG/4];
 

@@ -96,6 +96,8 @@ extern int ECANSendByteArray(unsigned long id, unsigned char len,char *payload);
 extern int ECANRxFilterAdd(unsigned long id, unsigned long mask);
 extern void ECANStart();
 extern void ECANCheckState();
+extern void ECANDma1ReconfInit();
+extern void ECANDma1Init();
 
 extern void hal_can_receptionfilter_set(unsigned char mask_num, 
                                         unsigned long mask_val, 

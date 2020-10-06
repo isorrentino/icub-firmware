@@ -1019,7 +1019,7 @@ int ECANSendByteArray(unsigned long id, unsigned char len, char *payload) {
     int payloadOffset = 0;
     
     while (len > 0) {
-        int bufferID = findFreeBufferAdvanced();
+        int bufferID = findFreeBuffer();
         
         if (bufferID != -1) {
             if (len < splitLength)
@@ -1034,21 +1034,6 @@ int ECANSendByteArray(unsigned long id, unsigned char len, char *payload) {
             payloadOffset += splitLength;
         }
     }
-    
-    /*int bufferID;
-    
-    int sample = 0;
-    
-    while (sample < 20)
-    {
-        bufferID = findFreeBuffer();
-        
-        if (bufferID != -1) {
-            ECANPrepareTxBuffer((tCANMessage*) ecan3MsgBufTx[bufferID], id, len, &payload[sample]);
-            
-            sample+=2;
-        }
-    }*/
 
     return 0; 
 }
