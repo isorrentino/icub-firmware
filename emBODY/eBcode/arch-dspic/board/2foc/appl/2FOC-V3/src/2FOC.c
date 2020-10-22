@@ -1024,14 +1024,14 @@ void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
     if (gLogData) {
         if (gNumOfBytes < CAN_BYTES_TO_LOG)
         {
-            if (gMessIndex > 255)
+            if (gMessIndex > 32)
             {
                 gMessIndex = 0;
             }    
             
             // Modified 01/10/2020 by Ines
             // To log to messages (index, pos, vel) in 1 message
-            /*int pos = (gQEPosition * 360) >> 16;
+            int pos = (gQEPosition * 360) >> 16;
             
             gLoggedData[gNumOfBytes] = (gMessIndex << 3) & 0xF8;
             gLoggedData[gNumOfBytes] = gLoggedData[gNumOfBytes] | ((pos >> 13) & 0x04);
@@ -1042,7 +1042,7 @@ void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
             gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | ((gQEVelocity >> 8) & 0x07);
             gLoggedData[gNumOfBytes + 3] = gQEVelocity & 0xFF;
                         
-            gNumOfBytes = gNumOfBytes + 4;*/
+            gNumOfBytes = gNumOfBytes + 4;
             
             /*int pos = (gQEPosition * 360) >> 16;
             // New message
@@ -1052,16 +1052,14 @@ void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
             gLoggedData[gNumOfBytes+3] = gQEVelocity & 0xFF;*/
             
             
-            gLoggedData[gNumOfBytes] = gMessIndex;
-            gLoggedData[gNumOfBytes + 1] = (gQEPosition >> 24) & 0xFF;
-            gLoggedData[gNumOfBytes + 2] = (gQEPosition >> 16) & 0xFF;
-            gLoggedData[gNumOfBytes + 3] = (gQEPosition >> 8) & 0xFF;
-            gLoggedData[gNumOfBytes + 4] = gQEPosition & 0xFF;
-            gLoggedData[gNumOfBytes + 5] = (gQEVelocity >> 8) & 0xFF;
-            gLoggedData[gNumOfBytes + 6] = gQEVelocity & 0xFF;
+            /*gLoggedData[gNumOfBytes] = (gQEPosition >> 24) & 0xFF;
+            gLoggedData[gNumOfBytes + 1] = (gQEPosition >> 16) & 0xFF;
+            gLoggedData[gNumOfBytes + 2] = (gQEPosition >> 8) & 0xFF;
+            gLoggedData[gNumOfBytes + 3] = gQEPosition & 0xFF;
+            gLoggedData[gNumOfBytes + 4] = (gQEVelocity >> 8) & 0xFF;
+            gLoggedData[gNumOfBytes + 5] = gQEVelocity & 0xFF;*/
             
-                        
-            gNumOfBytes = gNumOfBytes + 8;
+            //gNumOfBytes = gNumOfBytes + 6;
             
             gMessIndex++;
         }

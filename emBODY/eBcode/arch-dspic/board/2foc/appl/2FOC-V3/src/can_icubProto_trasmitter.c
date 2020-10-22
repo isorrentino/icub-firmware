@@ -71,7 +71,7 @@ extern void CanIcubProtoTrasmitterSendPeriodicData(void)
         payload.w[0] = I2Tdata.IQMeasured;
         payload.w[1] = gQEVelocity;
         payload.w[2] = gQEPosition & 0xFFFF;
-        payload.w[3] = gQEPosition >> 16; 
+        payload.w[3] = gQEPosition >> 16;
 
         msgid = CAN_ICUBPROTO_STDID_MAKE_TX(ICUBCANPROTO_CLASS_PERIODIC_MOTORCONTROL, canprototransmitter_bid, ICUBCANPROTO_PER_MC_MSG__2FOC);
 
