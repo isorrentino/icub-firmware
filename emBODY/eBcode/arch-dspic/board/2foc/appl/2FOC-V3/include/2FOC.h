@@ -18,8 +18,8 @@ extern "C" {
 //#define HAS_INDEX   0x0008
   
 // Modified 01/10/2020 by Ines
-//#define CAN_BYTES_TO_LOG 80
-#define CAN_BYTES_TO_LOG 160
+#define CAN_BYTES_TO_LOG 80
+//#define CAN_BYTES_TO_LOG 120
 
 #include "ecan.h"
 
