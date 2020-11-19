@@ -56,8 +56,8 @@ namespace embot { namespace hw { namespace bsp { namespace gpio {
     
     struct PROP
     {
-        GPIO_TypeDef* stmport;
-        std::uint16_t stmpin;        
+        GPIO_TypeDef* stmport;  // GPIOA, etc.
+        std::uint16_t stmpin;   // GPIO_PIN_0, GPIO_PIN_1, etc.        
         constexpr PROP() : stmport(nullptr), stmpin(0) {}
         constexpr PROP(GPIO_TypeDef* po, std::uint16_t pi) : stmport(po), stmpin(pi) {}
         constexpr bool isvalid() const { return (nullptr == stmport) ? false : true; }
@@ -91,7 +91,9 @@ namespace embot { namespace hw { namespace bsp { namespace gpio {
             if(supported(h)) { p.stmport = ports[embot::core::tointegral(h.port)]; p.stmpin = 1 << embot::core::tointegral(h.pin); }
             return p;
         }
-                
+        
+        constexpr embot::hw::GPIO getGPIO(const PROP &p) const;
+                        
         void init(embot::hw::GPIO h) const;
     };
     
@@ -130,8 +132,11 @@ namespace embot { namespace hw { namespace bsp { namespace button {
     
     struct PROP
     { 
+        static constexpr int32_t irqNONE {-1000}; 
         embot::hw::gpio::State  pressed;
         embot::hw::GPIO         gpio;
+        embot::hw::gpio::Pull   pull;
+        int32_t                 irqn;
     };
     
     struct BSP : public embot::hw::bsp::SUPP
@@ -143,6 +148,7 @@ namespace embot { namespace hw { namespace bsp { namespace button {
         std::array<const PROP*, maxnumberof> properties;    
         constexpr const PROP * getPROP(embot::hw::BTN h) const { return supported(h) ? properties[embot::core::tointegral(h)] : nullptr; }
         void init(embot::hw::BTN h) const;
+        void onEXTI(const embot::hw::bsp::gpio::PROP &p) const; // it must be called by IRQhandler or its callback with for example {nullptr, GPIO_PIN_5} 
     };
     
     const BSP& getBSP();
@@ -151,18 +157,20 @@ namespace embot { namespace hw { namespace bsp { namespace button {
 
 
 namespace embot { namespace hw { namespace bsp { namespace can {
-
+    
     #if defined(HAL_CAN_MODULE_ENABLED)
-    struct PROP
-    { 
-        CAN_HandleTypeDef* handle;   
-    };
-    #else    
-    struct PROP
-    { 
-        void* handle;   
-    };
+        using CAN_Handle = CAN_HandleTypeDef;    
+    #elif defined(HAL_FDCAN_MODULE_ENABLED)
+        using CAN_Handle = FDCAN_HandleTypeDef;
+    #else
+        using CAN_Handle = void;
     #endif
+    
+    struct PROP
+    { 
+        CAN_Handle* handle;   
+    };
+
     
     
     struct BSP : public embot::hw::bsp::SUPP
@@ -348,14 +356,21 @@ namespace embot { namespace hw { namespace bsp { namespace timer {
 
 
 
-#if defined(HAL_I2C_MODULE_ENABLED)
+
 namespace embot { namespace hw { namespace bsp { namespace i2c {
-    
-    
+
+#if defined(HAL_I2C_MODULE_ENABLED)    
     struct PROP
-    {   
-        I2C_HandleTypeDef*  handle;  
+    {     
+        I2C_HandleTypeDef* handle;  
     };
+#else
+    struct PROP
+    {     
+        void* handle;  
+    };
+#endif
+    
     
     struct BSP : public embot::hw::bsp::SUPP
     {
@@ -371,7 +386,7 @@ namespace embot { namespace hw { namespace bsp { namespace i2c {
     const BSP& getBSP();
                   
 }}}} // namespace embot { namespace hw { namespace bsp {  namespace i2c {
-#endif
+
 
 
 namespace embot { namespace hw { namespace bsp { namespace bno055 {
@@ -445,6 +460,30 @@ namespace embot { namespace hw { namespace bsp { namespace multisda {
     const BSP& getBSP();
               
 }}}} // namespace embot { namespace hw { namespace bsp {  namespace multisda {
+
+
+namespace embot { namespace hw { namespace bsp { namespace ads122c04 {
+       
+    struct PROP
+    {   
+        embot::hw::I2C i2cbus;
+        std::uint8_t i2caddress;        
+    };
+    
+    struct BSP : public embot::hw::bsp::SUPP
+    {
+        constexpr static std::uint8_t maxnumberof = embot::core::tointegral(embot::hw::ADS122C04::maxnumberof);
+        constexpr BSP(std::uint32_t msk, std::array<const PROP*, maxnumberof> pro) : SUPP(msk), properties(pro) {} 
+        constexpr BSP() : SUPP(0), properties({0}) {}
+            
+        std::array<const PROP*, maxnumberof> properties;    
+        constexpr const PROP * getPROP(embot::hw::ADS122C04 h) const { return supported(h) ? properties[embot::core::tointegral(h)] : nullptr; }
+        void init(embot::hw::ADS122C04 h) const;
+    };
+    
+    const BSP& getBSP();
+              
+}}}} // namespace embot { namespace hw { namespace bsp {  namespace ads122c04 {
 
 #endif  // include-guard
 

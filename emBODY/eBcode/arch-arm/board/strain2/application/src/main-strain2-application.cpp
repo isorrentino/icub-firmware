@@ -13,11 +13,11 @@
 
 constexpr embot::app::theCANboardInfo::applicationInfo applInfo 
 { 
-    embot::prot::can::versionOfAPPLICATION {2, 0, 7},    
+    embot::prot::can::versionOfAPPLICATION {2, 0, 9},    
     embot::prot::can::versionOfCANPROTOCOL {2, 0}    
 };
 
-constexpr std::uint16_t threadIDLEstacksize = 512;
+constexpr std::uint16_t threadIDLEstacksize = 1*512;
 constexpr std::uint16_t threadINITstacksize = 2048;
 constexpr std::uint16_t threadEVNTstacksize = 4096;
 constexpr std::uint8_t maxINPcanframes = 16;

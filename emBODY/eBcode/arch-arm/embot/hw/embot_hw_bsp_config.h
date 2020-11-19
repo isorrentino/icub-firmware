@@ -11,7 +11,7 @@
 #define _EMBOT_HW_BSP_CONFIG_H_
 
 #include "embot_core.h"
-#include "embot_hw.h"
+#include "embot_hw_types.h"
 #include "embot_hw_bsp.h"
 
 #include "stm32hal.h"
@@ -89,18 +89,37 @@
 
 #elif   defined(STM32HAL_BOARD_NUCLEOH7)
 
+#if defined(STM32HAL_BOARD_NUCLEOH7_BASIC) 
     #define EMBOT_ENABLE_hw_gpio
     #define EMBOT_ENABLE_hw_led
     #define EMBOT_ENABLE_hw_button
-    //#define EMBOT_ENABLE_hw_can
-    //#define EMBOT_ENABLE_hw_flash
-    //#define EMBOT_ENABLE_hw_pga308
-    //#define EMBOT_ENABLE_hw_adc
-    //#define EMBOT_ENABLE_hw_onewire
-    //#define EMBOT_ENABLE_hw_timer
-    //#define EMBOT_ENABLE_hw_si7051
+    #define EMBOT_ENABLE_hw_i2c
+    #define EMBOT_ENABLE_hw_tlv493d 
+#else    
+    #define EMBOT_ENABLE_hw_gpio
+    #define EMBOT_ENABLE_hw_led
+    #define EMBOT_ENABLE_hw_button
     #define EMBOT_ENABLE_hw_i2c
     #define EMBOT_ENABLE_hw_bno055
+    #define EMBOT_ENABLE_hw_ads122c04 
+#endif
+
+#elif   defined(STM32HAL_BOARD_STM32G4EVAL)
+
+    #define EMBOT_ENABLE_hw_gpio
+    #define EMBOT_ENABLE_hw_led
+    //#define EMBOT_ENABLE_hw_button
+    #define EMBOT_ENABLE_hw_can
+    #define EMBOT_ENABLE_hw_i2c
+    #define EMBOT_ENABLE_hw_tlv493d
+    
+#elif   defined(STM32HAL_BOARD_PMC)
+
+    #define EMBOT_ENABLE_hw_gpio
+    #define EMBOT_ENABLE_hw_led
+    //#define EMBOT_ENABLE_hw_button
+    
+    
 #else
     #error pls sdefine which peripherals/chips are attached to your board
 #endif

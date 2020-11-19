@@ -40,6 +40,14 @@
 
 #include "lock_guard"
 
+#include "EoProtocolMN.h"
+
+#include "EOVtheSystem.h"
+
+#include "EOtheLEDpulser.h"
+
+#include "EoError.h"
+
 extern void eo_diagnostic(void *p)
 {
     eom_task_Start((EOMtask*)p);
@@ -65,19 +73,25 @@ bool EOMtheEMSDiagnostic::initialise(const Params& cfg)
     }
     
     // create the socket
-    socket_ = eo_socketdtg_New(cfg.inpdatagramnumber_, rawcapacity_, (eobool_true == cfg.usemutex_) ? (eom_mutex_New()) : (NULL),cfg.outdatagramnumber_, rawcapacity_, (eobool_true == cfg.usemutex_) ? (eom_mutex_New()) : (NULL));
+    socket_ = eo_socketdtg_New(cfg.inpdatagramnumber_, inputudpmaxsize_, (eobool_true == cfg.usemutex_) ? (eom_mutex_New()) : (NULL),cfg.outdatagramnumber_, rawcapacity_, (eobool_true == cfg.usemutex_) ? (eom_mutex_New()) : (NULL));
 
     //Mutex init
     mutexNode_=eom_mutex_New();
     mutexUdpPackage_=eom_mutex_New();
            
     //create the rx/tx packet
-    rxpkt_ = eo_packet_New(rawcapacity_);
+    rxpkt_ = eo_packet_New(inputudpmaxsize_);
     txpkt_ = eo_packet_New(0);
     eo_packet_Size_Set(txpkt_, 0); 
-    
-    embot::prot::eth::diagnostic::Node::Config config {}; // to be filled properly after
-    node_.init(config);    
+
+#if defined(DIAGNOSTIC2_enabled) & defined(DIAGNOSTIC2_send_to_daemon)    
+    embot::prot::eth::diagnostic::Node::Config config {}; 
+    node_.init(config); 
+#endif
+        
+#if defined(DIAGNOSTIC2_enabled) & defined(DIAGNOSTIC2_receive_from_daemon)
+    host_.init({});        
+#endif 
         
     // create the task
     task_ = eom_task_New(eom_mtask_EventDriven, 
@@ -150,21 +164,72 @@ void EOMtheEMSDiagnostic::processEventRxPacket()
     }     
 }
 
+#if defined(DIAGNOSTIC2_enabled) & defined(DIAGNOSTIC2_receive_from_daemon)
+static bool callback(const embot::prot::eth::IPv4 &ipv4, const embot::prot::eth::rop::Descriptor &rop)
+{
+    if(rop.id32 == embot::prot::eth::getID32(embot::prot::eth::EP::management, embot::prot::eth::EN::mnApp, 0, eoprot_tag_mn_appl_cmmnds_timeset))
+    {
+        uint64_t *timeset = reinterpret_cast<uint64_t*>(rop.value.pointer);
+
+        eOabstime_t currtime = eov_sys_LifeTimeGet(eov_sys_GetHandle());
+        int64_t delta = *timeset - currtime;
+        
+        // first implementation: if the received time is not much different, then i apply it
+        eObool_t apply = eobool_false;
+        if(delta > 0)
+        {
+            // we go in the future. do we go much?
+            if(delta >= eok_reltime1ms)
+            {
+                apply = eobool_true;
+            }        
+        }
+        else
+        {
+            // it is either zero or negative (we go in the past)
+            delta = -delta;
+            if(delta >= eok_reltime1ms)
+            {
+                apply = eobool_true;
+            }        
+        }
+        
+        if(eobool_true == apply)
+        {
+            eov_sys_LifeTimeSet(eov_sys_GetHandle(), *timeset);
+        }
+        
+            
+        return true;        
+    }
+    
+    return false;
+}
+
+#endif 
+
 bool EOMtheEMSDiagnostic::manageArrivedMessage(EOpacket* package)
 {
     uint8_t *data = NULL;
     uint16_t size = 0;
     eo_packet_Payload_Get(rxpkt_,&data,&size);
-    //TODO add RX msg code
 
+#if defined(DIAGNOSTIC2_enabled) & defined(DIAGNOSTIC2_receive_from_daemon)    
+    const embot::prot::eth::IPv4 ipv4 {10, 0, 1, 104};
+    embot::core::Data da {data, size};
+    host_.accept(ipv4, da, callback);    
+#endif    
+    
     return true;
 }
 
 eOresult_t EOMtheEMSDiagnostic::transmitUdpPackage()
 {
+#if defined(DIAGNOSTIC2_enabled) & defined(DIAGNOSTIC2_send_to_daemon)  
+    
     if(!traceIsActive_)
         return eores_OK;//no transmit necessary
-    
+   
     if(node_.getNumberOfROPs()==0)
     {
         return eores_OK;//nothing to transmit
@@ -216,6 +281,10 @@ eOresult_t EOMtheEMSDiagnostic::transmitUdpPackage()
     if(res!=eores_OK)
         hal_trace_puts("ERROR - Udp msg not sent."); //TODO something
     return(res);
+
+#else
+    return eores_OK;
+#endif    
 }
     
 eOresult_t EOMtheEMSDiagnostic::connect(eOipv4addr_t remaddr)
@@ -242,7 +311,9 @@ eOresult_t EOMtheEMSDiagnostic::connect(eOipv4addr_t remaddr)
 
 
 bool EOMtheEMSDiagnostic::send(const embot::prot::eth::diagnostic::InfoBasic &ib, bool flush)
-{   
+{
+#if defined(DIAGNOSTIC2_enabled) & defined(DIAGNOSTIC2_send_to_daemon) 
+    
     {
         lock_guard<EOVmutexDerived> lock(mutexNode_);
         bool res=node_.add(ib);
@@ -257,11 +328,17 @@ bool EOMtheEMSDiagnostic::send(const embot::prot::eth::diagnostic::InfoBasic &ib
         eom_task_SetEvent(task_, diagnosticEvent_evt_packet_tobesent);          
     }   
     return true;
+    
+#else
+    return true;
+#endif    
 }  
 
 
 bool EOMtheEMSDiagnostic::send(const embot::prot::eth::diagnostic::Info &ii, bool flush)
-{   
+{ 
+#if defined(DIAGNOSTIC2_enabled) & defined(DIAGNOSTIC2_send_to_daemon)  
+    
     {
         lock_guard<EOVmutexDerived> lock(mutexNode_);
         bool res=node_.add(ii);
@@ -276,6 +353,10 @@ bool EOMtheEMSDiagnostic::send(const embot::prot::eth::diagnostic::Info &ii, boo
         eom_task_SetEvent(task_, diagnosticEvent_evt_packet_tobesent);          
     }   
     return true;
+    
+#else
+    return true;
+#endif    
 }  
 
 //extern "C"
