@@ -22,6 +22,8 @@ extern "C" {
 //#define CAN_BYTES_TO_LOG 120
 
 #include "ecan.h"
+    
+#include "fp_expfil_fixpt.h"
 
 typedef struct
 {
@@ -63,6 +65,11 @@ volatile extern uint8_t gMessIndex;
 volatile extern uint16_t gNumOfBytes;
 volatile extern char gLoggedData[CAN_BYTES_TO_LOG];
 //volatile extern tCanPosVel gLoggedData[CAN_BYTES_TO_LOG/4];
+
+volatile extern long x_pre;
+volatile extern long dx_32;
+//volatile extern int dx_fp;
+volatile extern unsigned int freq;
 
 volatile extern tMotorConfig MotorConfig;
 

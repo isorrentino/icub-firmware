@@ -131,8 +131,6 @@ _FICD(ICS_PGD3 & JTAGEN_OFF); // & COE_ON ); //BKBUG_OFF
 #include "can_icubProto_trasmitter.h"
 #include "stdint.h"
 
-/////////////////////////////////////////
-//#include "KF_2FOC.h"
 
 
 //#define CALIBRATION
@@ -148,7 +146,7 @@ volatile tLED_status LED_status = {0x00};
 tSysStatus SysStatus;
 
 volatile long gQEPosition = 0;
-volatile int  gQEVelocity = 0;
+volatile int gQEVelocity = 0;
 volatile tMeasCurrParm MeasCurrParm;
 volatile tCtrlReferences CtrlReferences;
 tParkParm ParkParm;
@@ -296,10 +294,30 @@ void ResetSetpointWatchdog()
         */
         ///////////////////////////
 
-float xh[3] = {0, 0, 0};
-float R = 1e-10;
-float Q[9] = {5e-4, 0, 0, 0, 1e-1, 0, 0, 0, 1};
-float Px[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+//float xh[3] = {0, 0, 0};
+//float R = 1e-10;
+//float Q[9] = {5e-4, 0, 0, 0, 1e-1, 0, 0, 0, 1};
+//float Px[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+
+//int64m_T gEstimPos[2];
+//unsigned long gS[4] = {65536UL, 0UL, 0UL, 65536UL};
+//int64m_T gEstimPosNew[2];
+//unsigned long gSNew[4];
+//int gVelKF = 10;
+//volatile BOOL firstTime = TRUE;
+//volatile BOOL motorReady = FALSE;
+
+volatile long x_pre = 0;
+volatile long dx_32 = 0;
+//volatile int dx_fp = 0;
+volatile unsigned int freq = 20000;
+
+
+/*int hat_omega_k = 0;
+long pos_old = 0;
+int freq = 20000;
+long scaled_hat_omega_k = 0;
+int scaled_err;*/
 
 BOOL updateOdometry()
 {
@@ -318,15 +336,48 @@ BOOL updateOdometry()
         {
             gQEPosition = 0;
             gQEVelocity = 0;
+            
             return FALSE;
         }
+        
+        
+        
 
+        //pos_old = gQEPosition;
+        
+        
+        x_pre = gQEPosition;
+        
+        
         gQEPosition += delta;
+        
+        
+        /*int g = 10000;
+        int hat_alfa = 8;
+        int a = g - hat_alfa;*/
+        //scaled_hat_omega_k = __builtin_mulss(a, hat_omega_k);
+        /*scaled_err = __builtin_mulss(hat_alfa, (int)(gQEPosition - pos_old));
+        long scaled_omega_k =  __builtin_mulss(freq, scaled_err);
+        hat_omega_k = __builtin_divsd((scaled_hat_omega_k + scaled_omega_k), g);*/
+        
+        //hat_omega_k = (1-0.0008) * hat_omega_k + 0.0008 * (gQEPosition - pos_old) * 20000;
+        
+        /*scaled_hat_omega_k = a * hat_omega_k;
+        scaled_err = (gQEPosition - pos_old) * hat_alfa;
+        long scaled_omega_k =  freq * scaled_err;
+        hat_omega_k = (scaled_hat_omega_k + scaled_omega_k) / g;*/
+        
+        
+        dx_32 = fp_expfil_fixpt(x_pre, dx_32, gQEPosition, freq);
+ 
+        
+        //gVelKF = fp_func_fixpt(aaa);
+        //aaa = fcn_kalmanfilter_fixpt(gEstimPos, gS, gQEPosition, gEstimPosNew, gSNew, &gVelKF);
+        //gVelKF = aaa;
+        //memcpy(gEstimPos, gEstimPosNew, 3*sizeof(int64m_T));
+        //memcpy(gS, gSNew, 9*sizeof(unsigned long));
+        
 
-        ///////////////////////////////////////////////////
-        //int pos = (gQEPosition * 360) >> 16;
-        //KF_2FOC(xh,pos,R,Q,Px);
-        ///////////////////////////////////////////////////
         
         if (++speed_undersampler == UNDERSAMPLING) // we obtain ticks per ms
         {
@@ -336,8 +387,14 @@ BOOL updateOdometry()
 
             gQEVelocity = (1 + gQEVelocity + gQEPosition - QEPosition_old) / 2;
 
-            QEPosition_old = gQEPosition; 
-
+            QEPosition_old = gQEPosition;
+            
+            
+            
+            gQEVelocity = (int) dx_32 / 1000;
+            
+            
+            
             return TRUE;
         }
 
@@ -551,6 +608,8 @@ volatile uint16_t gNumOfBytes = 0;
 volatile uint8_t gMessIndex = 0;
 volatile char gLoggedData[CAN_BYTES_TO_LOG];
 //volatile tCanPosVel gLoggedData[CAN_BYTES_TO_LOG/4];
+
+short numMess = 1;
 
 void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
 {
@@ -1024,44 +1083,93 @@ void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
     if (gLogData) {
         if (gNumOfBytes < CAN_BYTES_TO_LOG)
         {
-            if (gMessIndex > 32)
-            {
-                gMessIndex = 0;
-            }    
-            
-            // Modified 01/10/2020 by Ines
-            // To log to messages (index, pos, vel) in 1 message
-            int pos = (gQEPosition * 360) >> 16;
-            
-            gLoggedData[gNumOfBytes] = (gMessIndex << 3) & 0xF8;
-            gLoggedData[gNumOfBytes] = gLoggedData[gNumOfBytes] | ((pos >> 13) & 0x04);
-            gLoggedData[gNumOfBytes] = gLoggedData[gNumOfBytes] | ((pos >> 12) & 0x03);
-            gLoggedData[gNumOfBytes + 1] = (pos >> 4) & 0xFF;
-            gLoggedData[gNumOfBytes + 2] = (pos << 4) & 0xF0;
-            gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | ((gQEVelocity >> 12) & 0x08);
-            gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | ((gQEVelocity >> 8) & 0x07);
-            gLoggedData[gNumOfBytes + 3] = gQEVelocity & 0xFF;
-                        
-            gNumOfBytes = gNumOfBytes + 4;
-            
-            /*int pos = (gQEPosition * 360) >> 16;
-            // New message
-            gLoggedData[gNumOfBytes] = (pos >> 8) & 0xFF;
-            gLoggedData[gNumOfBytes+1] = pos & 0xFF;
-            gLoggedData[gNumOfBytes+2] = (gQEVelocity >> 8) & 0xFF;
-            gLoggedData[gNumOfBytes+3] = gQEVelocity & 0xFF;*/
-            
-            
-            /*gLoggedData[gNumOfBytes] = (gQEPosition >> 24) & 0xFF;
-            gLoggedData[gNumOfBytes + 1] = (gQEPosition >> 16) & 0xFF;
-            gLoggedData[gNumOfBytes + 2] = (gQEPosition >> 8) & 0xFF;
-            gLoggedData[gNumOfBytes + 3] = gQEPosition & 0xFF;
-            gLoggedData[gNumOfBytes + 4] = (gQEVelocity >> 8) & 0xFF;
-            gLoggedData[gNumOfBytes + 5] = gQEVelocity & 0xFF;*/
-            
-            //gNumOfBytes = gNumOfBytes + 6;
-            
-            gMessIndex++;
+            //if (numMess == 3)
+            //{
+                if (gMessIndex > 32)
+                {
+                    gMessIndex = 0;
+                }    
+
+                // Modified 01/10/2020 by Ines
+                // To log to messages (index, pos, vel) in 1 message
+                int pos = (gQEPosition * 360) >> 16;
+                int dx_16 = (int) dx_32 / 1000;
+
+                gLoggedData[gNumOfBytes] = (gMessIndex << 3) & 0xF8;
+                gLoggedData[gNumOfBytes] = gLoggedData[gNumOfBytes] | ((pos >> 13) & 0x04);
+                gLoggedData[gNumOfBytes] = gLoggedData[gNumOfBytes] | ((pos >> 12) & 0x03);
+                gLoggedData[gNumOfBytes + 1] = (pos >> 4) & 0xFF;
+                gLoggedData[gNumOfBytes + 2] = (pos << 4) & 0xF0;
+                gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | ((dx_32 >> 12) & 0x08);
+                gLoggedData[gNumOfBytes + 2] = gLoggedData[gNumOfBytes + 2] | ((dx_32 >> 8) & 0x07);
+                gLoggedData[gNumOfBytes + 3] = dx_32 & 0xFF;
+                
+                /*gLoggedData[gNumOfBytes] = (gQEPosition >> 24) & 0xFF;
+                gLoggedData[gNumOfBytes + 1] = (gQEPosition >> 16) & 0xFF;
+                gLoggedData[gNumOfBytes + 2] = (gQEPosition >> 8) & 0xFF;
+                gLoggedData[gNumOfBytes + 3] = gQEPosition & 0xFF;
+                gLoggedData[gNumOfBytes + 2] = (gQEVelocity >> 8) & 0xFF;
+                gLoggedData[gNumOfBytes + 3] = gQEVelocity & 0xFF;*/
+                
+                /*gLoggedData[gNumOfBytes] = (scaled_hat_omega_k >> 24) & 0xFF;
+                gLoggedData[gNumOfBytes + 1] = (scaled_hat_omega_k >> 16) & 0xFF;
+                gLoggedData[gNumOfBytes + 2] = (scaled_hat_omega_k >> 8) & 0xFF;
+                gLoggedData[gNumOfBytes + 3] = scaled_hat_omega_k & 0xFF;
+                gLoggedData[gNumOfBytes + 4] = (scaled_err >> 8) & 0xFF;
+                gLoggedData[gNumOfBytes + 5] = scaled_err & 0xFF;*/
+
+                gNumOfBytes = gNumOfBytes + 4;
+                
+                
+                /*gLoggedData[gNumOfBytes] = (gMessIndex >> 8) & 0xFF;
+                gLoggedData[gNumOfBytes+1] = gMessIndex & 0xFF;
+                gLoggedData[gNumOfBytes+2] = (gQEPosition >> 24) & 0xFF;
+                gLoggedData[gNumOfBytes+3] = (gQEPosition >> 16) & 0xFF;
+                gLoggedData[gNumOfBytes+4] = (gQEPosition >> 8) & 0xFF;
+                gLoggedData[gNumOfBytes+5] = gQEPosition & 0xFF;
+                gLoggedData[gNumOfBytes+6] = (dx_fp >> 8) & 0xFF;
+                gLoggedData[gNumOfBytes+7] = dx_fp & 0xFF;
+
+                gNumOfBytes = gNumOfBytes + 8;
+                
+                /*gLoggedData[gNumOfBytes] = (gQEPosition >> 24) & 0xFF;
+                gLoggedData[gNumOfBytes+1] = (gQEPosition >> 16) & 0xFF;
+                gLoggedData[gNumOfBytes+2] = (gQEPosition >> 8) & 0xFF;
+                gLoggedData[gNumOfBytes+3] = gQEPosition & 0xFF;
+                gLoggedData[gNumOfBytes+4] = (hat_omega_k >> 24) & 0xFF;
+                gLoggedData[gNumOfBytes+5] = (hat_omega_k >> 16) & 0xFF;
+                gLoggedData[gNumOfBytes+6] = (hat_omega_k >> 8) & 0xFF;
+                gLoggedData[gNumOfBytes+7] = hat_omega_k & 0xFF;
+
+                gNumOfBytes = gNumOfBytes + 8;*/
+                
+
+                /*int pos = (gQEPosition * 360) >> 16;
+                // New message
+                gLoggedData[gNumOfBytes] = (pos >> 8) & 0xFF;
+                gLoggedData[gNumOfBytes+1] = pos & 0xFF;
+                gLoggedData[gNumOfBytes+2] = (gQEVelocity >> 8) & 0xFF;
+                gLoggedData[gNumOfBytes+3] = gQEVelocity & 0xFF;*/
+
+
+                /*gLoggedData[gNumOfBytes] = (gQEPosition >> 24) & 0xFF;
+                gLoggedData[gNumOfBytes + 1] = (gQEPosition >> 16) & 0xFF;
+                gLoggedData[gNumOfBytes + 2] = (gQEPosition >> 8) & 0xFF;
+                gLoggedData[gNumOfBytes + 3] = gQEPosition & 0xFF;
+                gLoggedData[gNumOfBytes + 4] = (gQEVelocity >> 8) & 0xFF;
+                gLoggedData[gNumOfBytes + 5] = gQEVelocity & 0xFF;*/
+
+                //gNumOfBytes = gNumOfBytes + 6;
+
+                gMessIndex++;
+                
+                
+                //numMess = 0;
+            //}
+            //else
+            //{
+            //    numMess++;
+            //}
         }
     }
 

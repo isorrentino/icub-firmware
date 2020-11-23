@@ -86,7 +86,7 @@ void ECANClkInit(void)
   // Phase Segment 2 = 6Tq
   // Propagation Delay = 5Tq
   // Sync Segment = 1Tq
-  // CiCFG1<BRP> =(FCAN /(2 ×N×FBAUD))– 1
+  // CiCFG1<BRP> =(FCAN /(2 ×N×FBAUD))? 1
   // Bit rate of 1Mbps
   C1CFG1bits.BRP = BRP_VAL ;
   // Phase Segment 1 time is 8 Tq
