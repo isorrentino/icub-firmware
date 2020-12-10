@@ -298,7 +298,7 @@ void ResetSetpointWatchdog()
 // Variables declaration for exponential filter
 volatile long x_pre = 0;
 volatile long dx_32 = 0;
-volatile unsigned int freq = 20000;
+volatile unsigned int freq = PWMFREQUENCY;
 
 BOOL updateOdometry()
 {
