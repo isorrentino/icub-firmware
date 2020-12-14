@@ -95,6 +95,12 @@ extern BOOL updateOdometry();
 extern void ZeroControlReferences(void);
 
 volatile extern int gSetpointWatchdog;
+
+// Variables declaration for exponential filter
+volatile extern long x_pre;
+volatile extern long dx_32;
+volatile extern unsigned int freq;
+
 #define SETPOINT_WATCHDOG_REARM() gSetpointWatchdog = 1000;
 
 #ifdef	__cplusplus

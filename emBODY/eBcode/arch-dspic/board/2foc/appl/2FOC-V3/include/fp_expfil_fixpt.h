@@ -5,7 +5,11 @@
  * File: fp_expfil_fixpt.h
  *
  * MATLAB Coder version            : 5.0
+<<<<<<< HEAD
  * C/C++ source code generated on  : 23-Nov-2020 16:02:15
+=======
+ * C/C++ source code generated on  : 02-Dec-2020 00:22:55
+>>>>>>> feature/devel
  */
 
 #ifndef FP_EXPFIL_FIXPT_H

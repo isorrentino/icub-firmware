@@ -5,7 +5,11 @@
  * File: fp_expfil_fixpt.c
  *
  * MATLAB Coder version            : 5.0
+<<<<<<< HEAD
  * C/C++ source code generated on  : 23-Nov-2020 16:02:15
+=======
+ * C/C++ source code generated on  : 02-Dec-2020 00:22:55
+>>>>>>> feature/devel
  */
 
 /* Include Files */
@@ -470,7 +474,11 @@ long fp_expfil_fixpt(long x_pre, long dx_pre, long x, unsigned int freq)
   /*                                                                           % */
   /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
   /* 1 */
+<<<<<<< HEAD
   u = 65484UL;
+=======
+  u = 65470UL;
+>>>>>>> feature/devel
   u1 = (unsigned long)dx_pre;
   sMultiWordMul((unsigned long *)&u, 1, (unsigned long *)&u1, 1, (unsigned long *)
                 &r.chunks[0U], 2);
@@ -491,7 +499,11 @@ long fp_expfil_fixpt(long x_pre, long dx_pre, long x, unsigned int freq)
   u = freq;
   ssuMultiWordMul((unsigned long *)&r7.chunks[0U], 2, (unsigned long *)&u, 1,
                   (unsigned long *)&r.chunks[0U], 2);
+<<<<<<< HEAD
   u = 52UL;
+=======
+  u = 66UL;
+>>>>>>> feature/devel
   ssuMultiWordMul((unsigned long *)&r.chunks[0U], 2, (unsigned long *)&u, 1,
                   (unsigned long *)&r8.chunks[0U], 3);
   MultiWordSignedWrap((unsigned long *)&r8.chunks[0U], 3, 30U, (unsigned long *)
