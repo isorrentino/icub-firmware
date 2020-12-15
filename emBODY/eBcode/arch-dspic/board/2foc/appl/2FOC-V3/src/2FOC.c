@@ -323,24 +323,24 @@ BOOL updateOdometry()
             return FALSE;
         }
 
-        x_pre = gQEPosition;
+        //x_pre = gQEPosition;
         
         gQEPosition += delta;
         
-        dx_32 = fp_expfil_fixpt(x_pre, dx_32, gQEPosition, freq);
+        //dx_32 = fp_expfil_fixpt(x_pre, dx_32, gQEPosition, freq);
 
         
         if (++speed_undersampler == UNDERSAMPLING) // we obtain ticks per ms
         {
             speed_undersampler = 0;
 
-            //static long QEPosition_old = 0;
+            static long QEPosition_old = 0;
 
-            //gQEVelocity = (1 + gQEVelocity + gQEPosition - QEPosition_old) / 2;
+            gQEVelocity = (1 + gQEVelocity + gQEPosition - QEPosition_old) / 2;
 
-            //QEPosition_old = gQEPosition;
+            QEPosition_old = gQEPosition;
 
-            gQEVelocity = (int) (dx_32 / 1000);
+            //gQEVelocity = (int) (dx_32 / 1000);
 
             return TRUE;
         }
