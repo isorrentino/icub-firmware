@@ -131,14 +131,14 @@ _FICD(ICS_PGD3 & JTAGEN_OFF); // & COE_ON ); //BKBUG_OFF
 #include "can_icubProto_trasmitter.h"
 #include "stdint.h"
 
-#include "fp_expfil_fixpt.h"
+//#include "fp_expfil_fixpt.h"
 
 
 //#define CALIBRATION
 
 #define BOARD_CAN_ADDR_DEFAULT 0xE
 #define VOLT_REF_SHIFT 5 // for a PWM resolution of 1000
-#define PWM_50_DUTY_CYC (LOOPINTCY/2)
+//#define PWM_50_DUTY_CYC (LOOPINTCY/2)
 
 #define isDriveEnabled() bDriveEnabled
 
@@ -191,7 +191,8 @@ volatile int iQerror_old = 0;
 volatile int iDerror_old = 0;
 volatile char limit = 0;
 
-static const int PWM_MAX = 8*PWM_50_DUTY_CYC/10; // = 80%
+static const int PWM_MAX = (8*LOOPINTCY)/20;
+//static const int PWM_MAX = 8*PWM_50_DUTY_CYC/10; // = 80%
 
 volatile int gMaxCurrent = 0;
 volatile long sI2Tlimit = 0;
@@ -297,9 +298,9 @@ void ResetSetpointWatchdog()
 
 
 // Variables declaration for exponential filter
-volatile long x_pre = 0;
-volatile long dx_32 = 0;
-volatile unsigned int freq = PWMFREQUENCY;
+//volatile long x_pre = 0;
+//volatile long dx_32 = 0;
+//volatile unsigned int freq = PWMFREQUENCY;
 
 
 BOOL updateOdometry()
@@ -323,24 +324,24 @@ BOOL updateOdometry()
             return FALSE;
         }
 
-        x_pre = gQEPosition;
+        //x_pre = gQEPosition;
         
         gQEPosition += delta;
         
-        dx_32 = fp_expfil_fixpt(x_pre, dx_32, gQEPosition, freq);
+        //dx_32 = fp_expfil_fixpt(x_pre, dx_32, gQEPosition, freq);
 
-        
+         
         if (++speed_undersampler == UNDERSAMPLING) // we obtain ticks per ms
         {
             speed_undersampler = 0;
 
-            //static long QEPosition_old = 0;
+            static long QEPosition_old = 0;
 
-            //gQEVelocity = (1 + gQEVelocity + gQEPosition - QEPosition_old) / 2;
+            gQEVelocity = (1 + gQEVelocity + gQEPosition - QEPosition_old) / 2;
 
-            //QEPosition_old = gQEPosition;
+            QEPosition_old = gQEPosition;
 
-            gQEVelocity = (int) (dx_32 / 1000);
+            //gQEVelocity = (int) (dx_32 / 1000);
 
             return TRUE;
         }
@@ -987,8 +988,8 @@ void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
     }
     
     // Re-scale Vq, Vd with respect to the PWM resolution and fullscale.
-    Vq = Vq/(1000/PWM_50_DUTY_CYC);
-    Vd = Vd/(1000/PWM_50_DUTY_CYC);
+    //Vq = Vq/(1000/PWM_50_DUTY_CYC);
+    //Vd = Vd/(1000/PWM_50_DUTY_CYC);
     
     //
     ////////////////////////////////////////////////////////////////////////////
@@ -1030,26 +1031,24 @@ void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
     if (gLogData) {
         if (gNumOfBytes < CAN_BYTES_TO_LOG)
         {
-            //if (numMess == 3)
+          
+            //if (gMessIndex > 32)
             //{
-                //if (gMessIndex > 32)
-                //{
-                //    gMessIndex = 0;
-                //}    
+            //    gMessIndex = 0;
+            //}    
 
-                // Modified 01/10/2020 by Ines
-                // To log to messages (index, pos, vel) in 1 message
-                
-                int pos = (gQEPosition * 360) >> 16;
-                //int dx_16 = (int) dx_32 / 1000;
+            // Modified 26/01/2021 by Ines
 
-                gLoggedData[gNumOfBytes] = (pos >> 8) & 0xFF;
-                gLoggedData[gNumOfBytes + 1] = pos & 0xFF;
+            //int pos = (gQEPosition * 360) >> 16;
+            //int dx_16 = (int) dx_32 / 1000;
 
-                gNumOfBytes = gNumOfBytes + 2;
-                
-                //gMessIndex++;
-                
+            gLoggedData[gNumOfBytes] = (gQEPosition >> 24) & 0xFF;
+            gLoggedData[gNumOfBytes + 1] = (gQEPosition >> 16) & 0xFF;
+            gLoggedData[gNumOfBytes + 2] = (gQEPosition >> 8) & 0xFF;
+            gLoggedData[gNumOfBytes + 3] = gQEPosition & 0xFF;
+
+            gNumOfBytes = gNumOfBytes + 4;
+                                
         }
     }
 
@@ -1084,7 +1083,8 @@ void DisableAuxServiceTimer()
 void DriveInit()
 // Perform drive SW/HW init
 {
-    pwmInit(PWM_50_DUTY_CYC, DDEADTIME, PWM_MAX /*pwm max = 80%*/);
+    pwmInit(LOOPINTCY/2, DDEADTIME, (8*LOOPINTCY)/20 /*pwm max = 80%*/);
+    //pwmInit(PWM_50_DUTY_CYC, DDEADTIME, PWM_MAX /*pwm max = 80%*/);
 
     // setup and perform ADC offset calibration in MeasCurrParm.Offseta and Offsetb
     ADCDoOffsetCalibration();
