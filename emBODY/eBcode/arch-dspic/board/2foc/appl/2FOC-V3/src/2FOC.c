@@ -131,7 +131,7 @@ _FICD(ICS_PGD3 & JTAGEN_OFF); // & COE_ON ); //BKBUG_OFF
 #include "can_icubProto_trasmitter.h"
 #include "stdint.h"
 
-//#include "fp_expfil_fixpt.h"
+#include "fp_expfil_fixpt.h"
 
 
 //#define CALIBRATION
@@ -298,9 +298,9 @@ void ResetSetpointWatchdog()
 
 
 // Variables declaration for exponential filter
-//volatile long x_pre = 0;
-//volatile long dx_32 = 0;
-//volatile unsigned int freq = PWMFREQUENCY;
+volatile long x_pre = 0;
+volatile long dx_32 = 0;
+volatile unsigned int freq = PWMFREQUENCY;
 
 
 BOOL updateOdometry()
@@ -308,6 +308,7 @@ BOOL updateOdometry()
     if (MotorConfig.has_qe || MotorConfig.has_speed_qe)
     {
         static const int UNDERSAMPLING = PWMFREQUENCY / 1000;
+        
         static int speed_undersampler = 0;
 
         static int position_old = 0;
@@ -324,24 +325,24 @@ BOOL updateOdometry()
             return FALSE;
         }
 
-        //x_pre = gQEPosition;
+        x_pre = gQEPosition;
         
         gQEPosition += delta;
         
-        //dx_32 = fp_expfil_fixpt(x_pre, dx_32, gQEPosition, freq);
+        dx_32 = fp_expfil_fixpt(x_pre, dx_32, gQEPosition, freq);
 
          
         if (++speed_undersampler == UNDERSAMPLING) // we obtain ticks per ms
         {
             speed_undersampler = 0;
 
-            static long QEPosition_old = 0;
+            //static long QEPosition_old = 0;
 
-            gQEVelocity = (1 + gQEVelocity + gQEPosition - QEPosition_old) / 2;
+            //gQEVelocity = (1 + gQEVelocity + gQEPosition - QEPosition_old) / 2;
 
-            QEPosition_old = gQEPosition;
+            //QEPosition_old = gQEPosition;
 
-            //gQEVelocity = (int) (dx_32 / 1000);
+            gQEVelocity = (int) (dx_32 / 1000);
 
             return TRUE;
         }
