@@ -131,7 +131,7 @@ _FICD(ICS_PGD3 & JTAGEN_OFF); // & COE_ON ); //BKBUG_OFF
 #include "can_icubProto_trasmitter.h"
 #include "stdint.h"
 
-#include "fp_expfil_fixpt.h"
+//#include "fp_expfil_fixpt.h"
 
 
 //#define CALIBRATION
@@ -300,8 +300,6 @@ void ResetSetpointWatchdog()
 // Variables declaration for exponential filter
 volatile long x_pre = 0;
 volatile long dx_32 = 0;
-volatile unsigned int freq = PWMFREQUENCY;
-
 
 BOOL updateOdometry()
 {
@@ -329,9 +327,17 @@ BOOL updateOdometry()
         
         gQEPosition += delta;
         
-        dx_32 = fp_expfil_fixpt(x_pre, dx_32, gQEPosition, freq);
-
-         
+        //dx_32 = fp_expfil_fixpt(x_pre, dx_32, gQEPosition, freq);
+        
+        // This line implements dx_k = (1-alfa) * dx_k-1 + alfa * frequency * deltaPos
+        // In this case we have:
+        // - alfa = 0.001
+        // - frequency = 20000
+        // The computation between the parenthesis uses 1000 * alfa to avoid using 
+        // float numbers. Then the quantity is divided by 1000
+        dx_32 = (long)(999 * dx_32 + PWMFREQUENCY * (gQEPosition - x_pre)) / 1000;
+        
+        
         if (++speed_undersampler == UNDERSAMPLING) // we obtain ticks per ms
         {
             speed_undersampler = 0;
@@ -341,7 +347,7 @@ BOOL updateOdometry()
             //gQEVelocity = (1 + gQEVelocity + gQEPosition - QEPosition_old) / 2;
 
             //QEPosition_old = gQEPosition;
-
+            
             gQEVelocity = (int) (dx_32 / 1000);
 
             return TRUE;
