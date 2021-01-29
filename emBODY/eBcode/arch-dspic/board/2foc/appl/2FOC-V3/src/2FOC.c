@@ -139,6 +139,8 @@ _FICD(ICS_PGD3 & JTAGEN_OFF); // & COE_ON ); //BKBUG_OFF
 #define VOLT_REF_SHIFT 5 // for a PWM resolution of 1000
 #define PWM_50_DUTY_CYC (LOOPINTCY/2)
 
+#define EXP_FILTER_PARAM 2L // from 1 to 1000
+
 #define isDriveEnabled() bDriveEnabled
 
 volatile tI2T I2Tdata;
@@ -150,6 +152,10 @@ volatile int  gQEVelocity = 0;
 volatile tMeasCurrParm MeasCurrParm;
 volatile tCtrlReferences CtrlReferences;
 tParkParm ParkParm;
+
+// Variables declaration for exponential filter
+volatile long x_pre = 0;
+volatile long dx_32 = 0;
 
 /////////////////////////////////////////////////
 
@@ -312,17 +318,23 @@ BOOL updateOdometry()
             return FALSE;
         }
 
+        x_pre = gQEPosition;
+
         gQEPosition += delta;
+
+        // This line implements dx_k = (1-alfa) * dx_k-1 + alfa * frequency * deltaPos
+        // In this case we have:
+        // - alfa = 0.001
+        // - frequency = 20000
+        // The computation between the parenthesis uses 1000 * alfa to avoid using
+        // float numbers. Then the quantity is divided by 1000
+        dx_32 = ((1000L - EXP_FILTER_PARAM) * dx_32 + PWMFREQUENCY * EXP_FILTER_PARAM * (long) (gQEPosition - x_pre)) / 1000L;
 
         if (++speed_undersampler == UNDERSAMPLING) // we obtain ticks per ms
         {
             speed_undersampler = 0;
 
-            static long QEPosition_old = 0;
-
-            gQEVelocity = (1 + gQEVelocity + gQEPosition - QEPosition_old) / 2;
-
-            QEPosition_old = gQEPosition;
+            gQEVelocity = (int) (dx_32 / 1000);
 
             return TRUE;
         }
