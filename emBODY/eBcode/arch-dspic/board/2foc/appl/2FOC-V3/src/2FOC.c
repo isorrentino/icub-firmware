@@ -138,6 +138,8 @@ _FICD(ICS_PGD3 & JTAGEN_OFF); // & COE_ON ); //BKBUG_OFF
 #define BOARD_CAN_ADDR_DEFAULT 0xE
 #define VOLT_REF_SHIFT 5 // for a PWM resolution of 1000
 
+#define EXP_FILTER_PARAM 5 // from 1 to 1000
+
 #define isDriveEnabled() bDriveEnabled
 
 volatile tI2T I2Tdata;
@@ -325,7 +327,7 @@ BOOL updateOdometry()
         // - frequency = 20000
         // The computation between the parenthesis uses 1000 * alfa to avoid using
         // float numbers. Then the quantity is divided by 1000
-        dx_32 = (long)(999 * dx_32 + PWMFREQUENCY * (gQEPosition - x_pre)) / 1000;
+        dx_32 = (long)((1000 - EXP_FILTER_PARAM) * dx_32 + PWMFREQUENCY * EXP_FILTER_PARAM * (gQEPosition - x_pre)) / 1000;
 
         if (++speed_undersampler == UNDERSAMPLING) // we obtain ticks per ms
         {
