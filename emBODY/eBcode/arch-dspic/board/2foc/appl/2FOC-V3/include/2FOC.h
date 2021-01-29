@@ -64,6 +64,10 @@ volatile extern int  gQEVelocity;
 
 volatile extern int Ipeak;
 
+// Variables declaration for exponential filter
+volatile extern long x_pre;
+volatile extern long dx_32;
+
 extern void DisableDrive(void);
 extern void I2Twatcher(void);
 
