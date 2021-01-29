@@ -323,6 +323,7 @@ BOOL updateOdometry()
         // - frequency = 20000
         // The computation between the parenthesis uses 1000 * alfa to avoid using
         // float numbers. Then the quantity is divided by 1000
+        x_pre = gQEPosition;
         dx_32 = (long)(999 * dx_32 + PWMFREQUENCY * (gQEPosition - x_pre)) / 1000;
 
         if (++speed_undersampler == UNDERSAMPLING) // we obtain ticks per ms
