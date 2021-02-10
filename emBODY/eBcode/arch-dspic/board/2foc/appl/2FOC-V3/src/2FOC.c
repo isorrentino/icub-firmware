@@ -138,7 +138,10 @@ _FICD(ICS_PGD3 & JTAGEN_OFF); // & COE_ON ); //BKBUG_OFF
 #define BOARD_CAN_ADDR_DEFAULT 0xE
 #define VOLT_REF_SHIFT 5 // for a PWM resolution of 1000
 
-#define EXP_FILTER_PARAM 2L // from 1 to 1000
+#define EXP_FILTER_PARAM 150 // from 1 to 1000
+#define EXP_FILTER_SCALE_FACTOR 1000
+#define EXP_FILTER_BETA EXP_FILTER_SCALE_FACTOR-EXP_FILTER_PARAM
+#define EXP_FILTER_FACTOR_MUL EXP_FILTER_PARAM*20
 
 #define isDriveEnabled() bDriveEnabled
 
@@ -325,15 +328,23 @@ BOOL updateOdometry()
         // In this case we have:
         // - alfa = 0.001
         // - frequency = 20000
-        // The computation between the parenthesis uses 1000 * alfa to avoid using
-        // float numbers. Then the quantity is divided by 1000
-        dx_32 = ((1000L - EXP_FILTER_PARAM) * dx_32 + PWMFREQUENCY * EXP_FILTER_PARAM * (long) (gQEPosition - x_pre)) / 1000L;
-
+        // The computation between the parenthesis uses EXP_FILTER_PARAM = EXP_FILTER_SCALE_FACTOR * alfa to avoid using
+        // float numbers. Then the quantity is divided by EXP_FILTER_SCALE_FACTOR
+        //dx_32 = ((EXP_FILTER_SCALE_FACTOR - EXP_FILTER_PARAM) * dx_32 + PWMFREQUENCY * EXP_FILTER_PARAM * (long) (gQEPosition - x_pre)) / EXP_FILTER_SCALE_FACTOR; // tick/sec
+        //dx_32 = ( (EXP_FILTER_SCALE_FACTOR-EXP_FILTER_PARAM)*dx_32 + 20L*EXP_FILTER_PARAM*(long)(gQEPosition - x_pre) ) / EXP_FILTER_SCALE_FACTOR;
+        
+        long a = __builtin_mulss(EXP_FILTER_BETA, gQEVelocity);
+        long b = __builtin_mulss(EXP_FILTER_FACTOR_MUL, delta);
+        gQEVelocity = __builtin_divsd((a + b), EXP_FILTER_SCALE_FACTOR);
+        //gQEVelocity = delta;
+        
         if (++speed_undersampler == UNDERSAMPLING) // we obtain ticks per ms
         {
             speed_undersampler = 0;
 
-            gQEVelocity = (int) (dx_32 / 1000);
+            //gQEVelocity = (int) (dx_32 / 1000); // tick/msec
+            //gQEVelocity = (int) (dx_32); // tick/msec
+            //gQEVelocity = __builtin_divsd(dx_32, (int)1000); // tick/msec
 
             return TRUE;
         }
