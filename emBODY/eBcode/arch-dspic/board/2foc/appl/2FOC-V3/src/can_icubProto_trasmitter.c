@@ -63,15 +63,20 @@ extern void CanIcubProtoTrasmitterSendPeriodicData(void)
 {
     static tCanData payload; // = {{0}};
     unsigned long msgid;
+    
+    gNumOfBytes = 0;
 
-    payload.w[0] = I2Tdata.IQMeasured;
-    payload.w[1] = gQEVelocity;
-    payload.w[2] = gQEPosition & 0xFFFF;
-    payload.w[3] = gQEPosition >> 16;
+    if (gLogData==0) 
+    {
+        payload.w[0] = I2Tdata.IQMeasured;
+        payload.w[1] = gQEVelocity;
+        payload.w[2] = gQEPosition & 0xFFFF;
+        payload.w[3] = gQEPosition >> 16;
 
-    msgid = CAN_ICUBPROTO_STDID_MAKE_TX(ICUBCANPROTO_CLASS_PERIODIC_MOTORCONTROL, canprototransmitter_bid, ICUBCANPROTO_PER_MC_MSG__2FOC);
+        msgid = CAN_ICUBPROTO_STDID_MAKE_TX(ICUBCANPROTO_CLASS_PERIODIC_MOTORCONTROL, canprototransmitter_bid, ICUBCANPROTO_PER_MC_MSG__2FOC);
 
-    ECANSend(msgid, 8, &payload);
+        ECANSend(msgid, 8, &payload);
+    }   
 
     //prepare the payload
     payload.b[0] = gControlMode;
@@ -108,6 +113,12 @@ extern void CanIcubProtoTrasmitterSendPeriodicData(void)
 
             ECANSend(msgid, 8, &payload);
         }
+    }
+    
+    if(gLogData!=0) {
+        msgid = CAN_ICUBPROTO_STDID_MAKE_TX(ICUBCANPROTO_CLASS_PERIODIC_MOTORCONTROL, canprototransmitter_bid, ICUBCANPROTO_PER_MC_MSG__2FOC);
+        
+        ECANSendByteArray(msgid, CAN_BYTES_TO_LOG, (char *)gLoggedData);
     }
 }
 

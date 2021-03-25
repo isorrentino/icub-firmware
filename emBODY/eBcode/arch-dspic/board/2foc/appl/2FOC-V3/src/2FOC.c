@@ -205,6 +205,11 @@ volatile int  SKi = 0x10;
 volatile char SKs = 0x0A;
 volatile long SIntLimit = 0;//800L*1024L;
 
+volatile uint8_t gLogData = 0;
+volatile uint16_t gNumOfBytes = 0;
+volatile uint8_t gMessIndex = 0;
+volatile char gLoggedData[CAN_BYTES_TO_LOG];
+
 /////////////////////////////////////////
 
 void setMaxCurrent(int nom, int peak, int ovr)
@@ -993,6 +998,21 @@ void __attribute__((__interrupt__, no_auto_psv)) _DMA0Interrupt(void)
             i2t_undersampler = 0;
 
             I2Twatcher();
+        }
+    }
+    
+    ///////////////////////////////////////////////////
+    // Fill structure to log data if the logging mode is enabled
+    if (gLogData) {
+        if (gNumOfBytes < CAN_BYTES_TO_LOG)
+        {
+            // New message
+            gLoggedData[gNumOfBytes] = (gQEPosition >> 24) & 0xFF;
+            gLoggedData[gNumOfBytes+1] = (gQEPosition >> 16) & 0xFF;
+            gLoggedData[gNumOfBytes+2] = (gQEPosition >> 8) & 0xFF;
+            gLoggedData[gNumOfBytes+3] = gQEPosition & 0xFF;
+            
+            gNumOfBytes = gNumOfBytes + 4;
         }
     }
 

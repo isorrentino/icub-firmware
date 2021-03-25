@@ -447,6 +447,26 @@ static int s_canIcubProtoParser_parse_pollingMsg(tCanData *rxpayload, unsigned c
 
         return 1;
     }
+    
+    // Message to enable or disable the logging mode. It changes the variable 
+    // gLoggingMode that is then used in can_icubProto_transmitter.c
+    if (cmd == ICUBCANPROTO_POL_MC_CMD__SET_LOGGING_MODE)
+    {
+        if (rxlen!=2) return 0;
+
+        gLogData = (uint8_t)rxpayload->b[1];
+
+        if (gLogData)
+        {
+            ECANDma1ReconfInit();
+        }
+        else 
+        {
+            ECANDma1Init();
+        }
+        
+        return 1;
+    }
 
     return 0;
 }

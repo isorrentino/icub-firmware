@@ -11,6 +11,10 @@
 #ifdef	__cplusplus
 extern "C" {
 #endif
+    
+#define CAN_BYTES_TO_LOG 80
+    
+#include "ecan.h"
 
 //#define HAS_QE      0x0001
 //#define HAS_HALL    0x0002
@@ -61,6 +65,10 @@ volatile extern int gTemperature;
 volatile extern unsigned int i2cERRORS;
 volatile extern long gQEPosition;
 volatile extern int  gQEVelocity;
+
+volatile extern uint16_t gNumOfBytes;
+volatile extern uint8_t gLogData;
+volatile extern char gLoggedData[CAN_BYTES_TO_LOG];
 
 volatile extern int Ipeak;
 

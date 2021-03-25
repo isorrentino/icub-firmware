@@ -56,9 +56,14 @@ tCanErrors CanErrors = {
 /* DMA CAN Message Buffer Configuration */
 typedef unsigned int ECAN1RXMSGBUF [8][ECAN1_MSG_BUF_LENGTH];
 typedef unsigned int ECAN1TXMSGBUF [8][ECAN1_MSG_BUF_LENGTH];
+
+typedef unsigned int ECAN3TXMSGBUF [8][8];
+
 // Define ECAN Message Buffer
 ECAN1TXMSGBUF ecan1MsgBufTx __attribute__((space(dma),aligned(ECAN1_MSG_BUF_LENGTH*16)));
 ECAN1RXMSGBUF ecan1MsgBufRx __attribute__((space(dma),aligned(ECAN1_MSG_BUF_LENGTH*16)));
+
+ECAN3TXMSGBUF ecan3MsgBufTx __attribute__((space(dma),aligned(ECAN1_MSG_BUF_LENGTH*16)));
 
 void (*ECANRxCb)(unsigned long id, unsigned char len, tCanData *payload);
 
@@ -252,6 +257,17 @@ void ECANDma2Init(void)
   DMA2STA=__builtin_dmaoffset(ecan1MsgBufRx);	
   // enable the channel
   DMA2CONbits.CHEN=1;
+}
+
+void ECANDma1ReconfInit(void) {
+  // enable the channel
+  DMA1CONbits.CHEN=0;
+  // Set the data block transfer size of 8
+  DMA2CNT=0x0007;
+  // DPSRAM TX start adddress offset value
+  DMA1STA=__builtin_dmaoffset(ecan3MsgBufTx);
+  // enable the channel
+  DMA1CONbits.CHEN=1;
 }
 
 int ECANRxFilterAdd(unsigned long id, unsigned long mask)
@@ -562,173 +578,200 @@ void __attribute__((interrupt, no_auto_psv)) _C1Interrupt(void)
 
 }
 
-void ECANPrepareTxBuffer(tCANMessage *CANTxMessage, unsigned long id, unsigned char len, tCanData *payload)
+void ECANPrepareTxBuffer(tCANMessage *CANTxMessage, unsigned long id, unsigned char len, void *payload)
 {
-  
+    if(id & ECAN_ID_29){
 
-  if(id & ECAN_ID_29){
-  
-	// 29 bit
-  	CANTxMessage->EID0to5 = id & 0x3f;
-  	CANTxMessage->EID6to17 = (id >> 6)& 0xfff;
-  	CANTxMessage->SID = (id >> 18) & 0x7ff;
-  
-	CANTxMessage->IDE = CANTxMessage->SRR = 1;
-  }else{
+      // 29 bit
+      CANTxMessage->EID0to5 = id & 0x3f;
+      CANTxMessage->EID6to17 = (id >> 6)& 0xfff;
+      CANTxMessage->SID = (id >> 18) & 0x7ff;
 
-    // 11 bit
-    CANTxMessage->SID = id & 0x7ff;
+      CANTxMessage->IDE = CANTxMessage->SRR = 1;
+    }else{
 
-    CANTxMessage->EID0to5 = 0;
-  	CANTxMessage->EID6to17 = 0;
+      // 11 bit
+      CANTxMessage->SID = id & 0x7ff;
 
-	  CANTxMessage->IDE = CANTxMessage->SRR = 0;
-  }
-  
-  CANTxMessage->RTR=0x0; //not remote
-//  CANTxMessage->RB0=CANTxMessage.RB1=0x0; // reserved
+      CANTxMessage->EID0to5 = 0;
+      CANTxMessage->EID6to17 = 0;
 
-  CANTxMessage->DLC=len;
+      CANTxMessage->IDE = CANTxMessage->SRR = 0;
+    }
 
-  memcpy(CANTxMessage->data,payload->b,len);
+    CANTxMessage->RTR=0x0; //not remote
+  //  CANTxMessage->RB0=CANTxMessage.RB1=0x0; // reserved
+
+    CANTxMessage->DLC=len;
+
+    memcpy(CANTxMessage->data,payload,len);
 }
 
-
-int ECANSend(unsigned long id, unsigned char len, tCanData *payload)
-// sends the message on CAN bus  
-// Parameters: 
+int findFreeBuffer()
 {
+    static int ecanprio[4] = {0,0,0,0};
 
-  static int ecanprio[4] = {0,0,0,0};
-
-  // If TX is still pending on both buffers, give up!
-  if( C1TR01CONbits.TXREQ0 && C1TR01CONbits.TXREQ1 && C1TR23CONbits.TXREQ2 &&  C1TR23CONbits.TXREQ3)
-  {
-    // TODO: lanciare un acconccio log di errore
-    return -1;
-  }
-
-  // If Buf0 is free then use Buf0
-  if(!C1TR01CONbits.TXREQ0){
+    // If TX is still pending on both buffers, give up!
+    if( C1TR01CONbits.TXREQ0 && C1TR01CONbits.TXREQ1 && C1TR23CONbits.TXREQ2 &&  C1TR23CONbits.TXREQ3)
+    {
+      // TODO: lanciare un acconccio log di errore
+      return -1;
+    }
     
-	ECANPrepareTxBuffer((tCANMessage*) ecan1MsgBufTx[0], id, len, payload);
-    // set the message for transmission
- 
-//	C1TR01CONbits.TX0PRI=0b1;
+    // If Buf0 is free then use Buf0
+    if(!C1TR01CONbits.TXREQ0){
+        // use buf 0
+        
+        //	C1TR01CONbits.TX0PRI=0b1;
 
 	    ecanprio[0] = 0;
-//#ifdef ECAN_TX4BUF
-	if((ecanprio[1] < 0b11) && (ecanprio[2] < 0b11) && (ecanprio[3]< 0b11)){
-		ecanprio[1]++;
-		ecanprio[2]++;
-		ecanprio[3]++;
-	}
-//#else
-//	if((ecanprio[1] < 0b11) && (ecanprio[2] < 0b11)){
-//		ecanprio[1]++;
-//		ecanprio[2]++;
-//	}
+        //#ifdef ECAN_TX4BUF
+        if((ecanprio[1] < 0b11) && (ecanprio[2] < 0b11) && (ecanprio[3]< 0b11)){
+            ecanprio[1]++;
+            ecanprio[2]++;
+            ecanprio[3]++;
+        }
+        //#else
+        //	if((ecanprio[1] < 0b11) && (ecanprio[2] < 0b11)){
+        //		ecanprio[1]++;
+        //		ecanprio[2]++;
+        //	}
 
-//#endif
-	C1TR01CONbits.TX0PRI = ecanprio[0];
-	C1TR01CONbits.TX1PRI = ecanprio[1];
-	C1TR23CONbits.TX2PRI = ecanprio[2];
+        //#endif
+        C1TR01CONbits.TX0PRI = ecanprio[0];
+        C1TR01CONbits.TX1PRI = ecanprio[1];
+        C1TR23CONbits.TX2PRI = ecanprio[2];
 
-//#ifdef ECAN_TX4BUF
-	C1TR23CONbits.TX3PRI = ecanprio[3];
-//#endif
+        //#ifdef ECAN_TX4BUF
+        C1TR23CONbits.TX3PRI = ecanprio[3];
+        //#endif
 
-    C1TR01CONbits.TXREQ0=1;
-  
-  
-  }else if(!C1TR01CONbits.TXREQ1){
-      // Buf 0 was not free. If buf1 is free use buf 1 
-      //
-      ECANPrepareTxBuffer((tCANMessage*) ecan1MsgBufTx[1], id, len, payload);
-
-	  ecanprio[1] = 0;
-
-//#ifdef ECAN_TX4BUF
-	 if((ecanprio[0] < 0b11) && (ecanprio[2] < 0b11) && (ecanprio[3]< 0b11)){
-		ecanprio[0]++;
-		ecanprio[2]++;
-		ecanprio[3]++;
-	 }
-//#else
-//	 if((ecanprio[0] < 0b11) && (ecanprio[2] < 0b11)){
-//		ecanprio[0]++;
-//		ecanprio[2]++;
-//	 }
-//#endif
-
-	  C1TR01CONbits.TX0PRI = ecanprio[0];
-	  C1TR01CONbits.TX1PRI = ecanprio[1];
-	  C1TR23CONbits.TX2PRI = ecanprio[2];
-
-//#ifdef ECAN_TX4BUF
-	  C1TR23CONbits.TX3PRI = ecanprio[3];
-//#endif
-      // set the message for transmission
-      C1TR01CONbits.TXREQ1=1;
-    
-  }else if(!C1TR23CONbits.TXREQ2){
-
-      // use buf 2 
-      
-	  ECANPrepareTxBuffer((tCANMessage*) ecan1MsgBufTx[2], id, len, payload);
-      // set the message for transmission
-	  ecanprio[2] = 0;
-
-//#ifdef ECAN_TX4BUF
-	 if((ecanprio[0] < 0b11) && (ecanprio[1] < 0b11) && (ecanprio[3]< 0b11)){
-		ecanprio[0]++;
-		ecanprio[1]++;
-		ecanprio[3]++;
-	 }
-//#else
-//	 if((ecanprio[0] < 0b11) && (ecanprio[1] < 0b11)){
-//		ecanprio[0]++;
-//		ecanprio[1]++;
-//	 }
-//#endif
-
-	  C1TR01CONbits.TX0PRI = ecanprio[0];
-	  C1TR01CONbits.TX1PRI = ecanprio[1];
-	  C1TR23CONbits.TX2PRI = ecanprio[2];
-
-//#ifdef ECAN_TX4BUF
-	  C1TR23CONbits.TX3PRI = ecanprio[3];
-//#endif
-			
-      C1TR23CONbits.TXREQ2=1;
+        C1TR01CONbits.TXREQ0=1;
+ 
+        return 0;
+        
     }
-//#ifdef ECAN_TX4BUF
-	else{
- // use buf 3 
-      
-	  ECANPrepareTxBuffer((tCANMessage*) ecan1MsgBufTx[3], id, len, payload);
-      // set the message for transmission
-	  ecanprio[3] = 0;
+    else if(!C1TR01CONbits.TXREQ1){ 
+        // use buf 1
+        
+        ecanprio[1] = 0;
 
+        //#ifdef ECAN_TX4BUF
+         if((ecanprio[0] < 0b11) && (ecanprio[2] < 0b11) && (ecanprio[3]< 0b11)){
+            ecanprio[0]++;
+            ecanprio[2]++;
+            ecanprio[3]++;
+         }
+        //#else
+        //	 if((ecanprio[0] < 0b11) && (ecanprio[2] < 0b11)){
+        //		ecanprio[0]++;
+        //		ecanprio[2]++;
+        //	 }
+        //#endif
 
-	 if((ecanprio[0] < 0b11) && (ecanprio[1] < 0b11) && (ecanprio[2]< 0b11)){
-		ecanprio[0]++;
-		ecanprio[1]++;
-		ecanprio[2]++;
-	 }
+        C1TR01CONbits.TX0PRI = ecanprio[0];
+        C1TR01CONbits.TX1PRI = ecanprio[1];
+        C1TR23CONbits.TX2PRI = ecanprio[2];
 
-	  C1TR01CONbits.TX0PRI = ecanprio[0];
-	  C1TR01CONbits.TX1PRI = ecanprio[1];
-	  C1TR23CONbits.TX2PRI = ecanprio[2];
-	  C1TR23CONbits.TX3PRI = ecanprio[3];
+        //#ifdef ECAN_TX4BUF
+        C1TR23CONbits.TX3PRI = ecanprio[3];
+        //#endif
+          // set the message for transmission
+        C1TR01CONbits.TXREQ1=1;
+    
+        return 1;
+        
+    }
+    else if(!C1TR23CONbits.TXREQ2){
+        // use buf 2 
+        
+        // set the message for transmission
+        ecanprio[2] = 0;
+
+        //#ifdef ECAN_TX4BUF
+        if((ecanprio[0] < 0b11) && (ecanprio[1] < 0b11) && (ecanprio[3]< 0b11)){
+            ecanprio[0]++;
+            ecanprio[1]++;
+            ecanprio[3]++;
+        }
+        //#else
+        //	 if((ecanprio[0] < 0b11) && (ecanprio[1] < 0b11)){
+        //		ecanprio[0]++;
+        //		ecanprio[1]++;
+        //	 }
+        //#endif
+
+        C1TR01CONbits.TX0PRI = ecanprio[0];
+        C1TR01CONbits.TX1PRI = ecanprio[1];
+        C1TR23CONbits.TX2PRI = ecanprio[2];
+
+        //#ifdef ECAN_TX4BUF
+        C1TR23CONbits.TX3PRI = ecanprio[3];
+        //#endif
 			
-      C1TR23CONbits.TXREQ3=1;
-	}
+        C1TR23CONbits.TXREQ2=1;
+        return 2;
+    }
+    //#ifdef ECAN_TX4BUF
+	else{
+        // use buf 3 
+      
+        // set the message for transmission
+        ecanprio[3] = 0;
 
-//#endif
- return 0; 
+        if((ecanprio[0] < 0b11) && (ecanprio[1] < 0b11) && (ecanprio[2]< 0b11)){
+            ecanprio[0]++;
+            ecanprio[1]++;
+            ecanprio[2]++;
+        }
+
+        C1TR01CONbits.TX0PRI = ecanprio[0];
+        C1TR01CONbits.TX1PRI = ecanprio[1];
+        C1TR23CONbits.TX2PRI = ecanprio[2];
+        C1TR23CONbits.TX3PRI = ecanprio[3];
+			
+        C1TR23CONbits.TXREQ3=1;
+        
+        return 3;
+	}
+      
+    return -1;
 }
 
+int ECANSend(unsigned long id, unsigned char len, tCanData *payload) 
+{
+    int bufferID = findFreeBuffer();
+    
+    if (bufferID != -1) {
+        ECANPrepareTxBuffer((tCANMessage*) ecan1MsgBufTx[bufferID], id, len, payload->b);
+    }
+        
+    return 0; 
+}
+
+int ECANSendByteArray(unsigned long id, unsigned char len, char *payload) {
+    int splitLength = 8;
+    int payloadOffset = 0;
+    
+    while (len > 0) {
+        int bufferID = findFreeBuffer();
+        
+        if (bufferID != -1) {
+            if (len < splitLength)
+            {
+                splitLength = len;
+            }
+            
+            ECANPrepareTxBuffer((tCANMessage*) ecan3MsgBufTx[bufferID], id, splitLength, &payload[payloadOffset]);
+           
+            len -= splitLength;
+            
+            payloadOffset += splitLength;
+        }
+    }
+
+    return 0; 
+}
 
 // CAN RX ISR
 void __attribute__((interrupt, no_auto_psv)) _DMA2Interrupt(void)

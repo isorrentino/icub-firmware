@@ -63,7 +63,7 @@ USE FOR EXTENDED MESSAGES ONLY */
 typedef union
 {
     unsigned long dw[2];
-    unsigned short w[4];
+    unsigned short w[8];
     unsigned char b[8];
 }__attribute__((__packed__)) tCanData;
 
@@ -86,6 +86,9 @@ extern int ECANSend(unsigned long id, unsigned char len,tCanData *payload);
 extern int ECANRxFilterAdd(unsigned long id, unsigned long mask);
 extern void ECANStart();
 extern void ECANCheckState();
+extern int ECANSendByteArray(unsigned long id, unsigned char len,char *payload);
+extern void ECANDma1Init();
+extern void ECANDma1ReconfInit();
 
 extern void hal_can_receptionfilter_set(unsigned char mask_num, 
                                         unsigned long mask_val, 
